@@ -1,10 +1,10 @@
 <!--
-A real /threat-model run, not a mock-up. Target: examples/vulnerable-app/ in
+A real /app-stride-report run, not a mock-up. Target: examples/vulnerable-app/ in
 this repository, a NestJS app that is wrong on purpose. Reproduce it with:
 
     cp -R examples/vulnerable-app /tmp/run && git -C /tmp/run init -q
     ./install.sh --project /tmp/run
-    cd /tmp/run && claude -p "/api-secure-report en" && claude -p "/threat-model en"
+    cd /tmp/run && claude -p "/api-secure-report en" && claude -p "/app-stride-report en"
 
 Run in that order and the threat model picks up SECURITY-REPORT.md and marks the
 threats already confirmed in code. Wording will differ run to run — the

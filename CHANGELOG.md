@@ -22,11 +22,11 @@ other.
 
 ### Added
 
-- **`threat-model` skill and `/threat-model`.** Decomposes the project into
+- **`app-stride-report` skill and `/app-stride-report`.** Decomposes the project into
   actors, processes, stores, flows and trust boundaries, draws the data-flow
   diagram in Mermaid, and enumerates STRIDE threats per element — each with its
   attack path, whether anything currently stops it, and what would. Writes
-  `THREAT-MODEL.md` to the project root.
+  `STRIDE-REPORT.md` to the project root.
 - **`stride/` material** with stable ids `S.Q1`–`S.Q6`, `T.Q1`–`T.Q6`,
   `R.Q1`–`R.Q5`, `I.Q1`–`I.Q6`, `D.Q1`–`D.Q6`, `E.Q1`–`E.Q7`, under the same
   never-renumbered promise the OWASP ids carry.
@@ -41,7 +41,7 @@ other.
 - **Five checks in `scripts/check-ids.sh`.** The threat material is held to the
   same promises as the core — manifest rows resolve, no orphans, cited ids
   exist, numbering is contiguous — plus one it makes alone: no file under
-  `skills/threat-model/` may cite an OWASP id, a stack id, or the rules skill.
+  `skills/app-stride-report/` may cite an OWASP id, a stack id, or the rules skill.
   Independence is verified, not promised.
 
 ### Changed
@@ -61,13 +61,13 @@ other.
 
   Remove the old marketplace and add the new one. GitHub redirects the old
   repository URL, so `git clone` and the `curl` of `TRIGGER.md` keep working.
-- **`/threat-model` reads what is already in the project.** `SECURITY-NOTES.md`
+- **`/app-stride-report` reads what is already in the project.** `SECURITY-NOTES.md`
   supplies accepted risks; a `SECURITY-REPORT.md` from `/api-secure-report`
   marks the threats already confirmed in code — cited by that report's finding
   number, never by the taxonomy it uses. The two documents share a project, not
   a vocabulary.
 - **`install.sh` installs skills and agents from two lists** instead of naming
-  one agent in each of its two modes, and gitignores `THREAT-MODEL.md` alongside
+  one agent in each of its two modes, and gitignores `STRIDE-REPORT.md` alongside
   `SECURITY-REPORT.md`.
 - **Check 4 covers every consumer's `references/`**, not only the report format,
   so a new consumer citing a dead id fails the build the day it is added.

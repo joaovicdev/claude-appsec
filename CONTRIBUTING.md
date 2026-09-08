@@ -1,7 +1,7 @@
 # Contributing
 
 Two bodies of material live here — the OWASP rules under
-`skills/secure-coding/` and the STRIDE material under `skills/threat-model/`.
+`skills/secure-coding/` and the STRIDE material under `skills/app-stride-report/`.
 The first half of this file is the recipe for a stack file; the conventions from
 `## Cross-reference discipline` onwards apply to both.
 
@@ -78,15 +78,15 @@ reading it in a Go or Python project, it is in the wrong file.
 
 ## The threat material is a separate body
 
-`skills/threat-model/stride/` is the second body of material in this repository
+`skills/app-stride-report/stride/` is the second body of material in this repository
 and it is deliberately independent: its own ids (`S.Q1`…`E.Q6`), its own files,
 its own consumer. It answers a different question — *what could go wrong here by
 design* — over a different unit of analysis: the trust boundary, not the route.
 
 **Neither body cites the other.** Not as a "see also", not in a comment. Check 13
 of `scripts/check-ids.sh` fails the build on an OWASP id, a stack id, or a
-reference to the rules skill appearing anywhere under `skills/threat-model/` or
-in `agents/threat-modeler.md`. The reason is portability: either half has to be
+reference to the rules skill appearing anywhere under `skills/app-stride-report/` or
+in `agents/app-stride-reporter.md`. The reason is portability: either half has to be
 usable, and correct, with the other uninstalled. A single convenience
 cross-reference is how that stops being true.
 

@@ -2,7 +2,7 @@
 
 **Code security for Claude Code.** Three skills: OWASP Top 10:2025 rules Claude
 applies **while it writes your backend code**, `/api-secure-report`, which audits
-every HTTP route in a project, and `/threat-model`, which maps the system's trust
+every HTTP route in a project, and `/app-stride-report`, which maps the system's trust
 boundaries and works STRIDE across them.
 
 Markdown the agent reads, plus two read-only commands. Not a scanner — nothing
@@ -11,11 +11,11 @@ executes your code, nothing leaves your machine.
 <p align="center">
   <a href="examples/example-data-flow-diagram.png">
     <img src="examples/example-data-flow-diagram.png" width="860"
-         alt="Data-flow diagram produced by /threat-model: four zones — untrusted internet, the authenticated application zone, third-party network and the data zone — with actors, controllers and stores as nodes, and every crossing labelled with its protocol and credential: POST /webhooks/payments over HMAC, a WebSocket handshake that only decodes the token, SQL with TLS off, a caller-supplied path reaching execSync.">
+         alt="Data-flow diagram produced by /app-stride-report: four zones — untrusted internet, the authenticated application zone, third-party network and the data zone — with actors, controllers and stores as nodes, and every crossing labelled with its protocol and credential: POST /webhooks/payments over HMAC, a WebSocket handshake that only decodes the token, SQL with TLS off, a caller-supplied path reaching execSync.">
   </a>
 </p>
 <p align="center"><sub>
-  The data-flow diagram <code>/threat-model</code> writes into <code>THREAT-MODEL.md</code>,
+  The data-flow diagram <code>/app-stride-report</code> writes into <code>STRIDE-REPORT.md</code>,
   rendered from Mermaid — one of the three skills below. From a real run
   (pt-BR, the default language); click to enlarge.
 </sub></p>
@@ -28,7 +28,7 @@ One plugin, three skills. The first applies itself; the other two are commands.
 |---|---|---|---|
 | `secure-coding` | OWASP Top 10:2025 rules Claude reads *before* it writes a route, guard, query, auth flow, config or dependency — then flags what it just wrote, citing the rule id | nothing to run — the trigger in your `CLAUDE.md` loads it | nothing. Inline flags, while you work |
 | `api-secure-report` | Every HTTP route in the project, each marked clean or carrying findings: route → vulnerability → how an attacker reaches it → fix | `/api-secure-report [language] [path]` | `SECURITY-REPORT.md` at the project root |
-| `threat-model` | Decomposes the system into actors, processes, stores, flows and trust boundaries, draws the data-flow diagram, works STRIDE across every element | `/threat-model [language] [path]` | `THREAT-MODEL.md` at the project root |
+| `app-stride-report` | Decomposes the system into actors, processes, stores, flows and trust boundaries, draws the data-flow diagram, works STRIDE across every element | `/app-stride-report [language] [path]` | `STRIDE-REPORT.md` at the project root |
 
 Both commands take the same two optional arguments: `language` defaults to
 `pt-BR`, `path` to the repository root. Both are read-only, and each overwrites
@@ -68,7 +68,7 @@ git clone https://github.com/joaovicdev/claude-appsec
 
 This copies the three skills into `.claude/skills/`, both read-only agents into
 `.claude/agents/`, imports the trigger in the repo's `CLAUDE.md`, and gitignores
-`SECURITY-REPORT.md` and `THREAT-MODEL.md`. Commit the result — teammates get it
+`SECURITY-REPORT.md` and `STRIDE-REPORT.md`. Commit the result — teammates get it
 on their next pull.
 
 > **The trigger is not optional.** *"Add an endpoint"* does not read as a
@@ -132,7 +132,7 @@ it came from. The work fans out over read-only `security-auditor` subagents.
   run against <a href="examples/vulnerable-app/">examples/vulnerable-app/</a>.
 </sub></p>
 
-## `/threat-model` — the system, modelled
+## `/app-stride-report` — the system, modelled
 
 A different question and a different taxonomy: not *"is this line wrong"* but
 *"what could go wrong here by design"*. It decomposes the project into actors,
@@ -157,13 +157,13 @@ classification — see [Attribution](#attribution).
 ```
 
 <p align="center">
-  <img src="examples/example-threat-model.png" width="700"
-       alt="Header and summary of a /threat-model run: stack, scope and date, then the element counts — 6 actors, 15 processes, 5 stores, 13 flows, 8 trust boundaries — and 69 numbered threats broken down by risk and by STRIDE category.">
+  <img src="examples/example-stride-report.png" width="700"
+       alt="Header and summary of an /app-stride-report run: stack, scope and date, then the element counts — 6 actors, 15 processes, 5 stores, 13 flows, 8 trust boundaries — and 69 numbered threats broken down by risk and by STRIDE category.">
 </p>
 <p align="center"><sub>
   The same run as the diagram at the top of this page: 69 numbered threats over
   39 elements, counted by risk and by STRIDE category.
-  Full example in English: <a href="examples/THREAT-MODEL.example.md">examples/THREAT-MODEL.example.md</a> —
+  Full example in English: <a href="examples/STRIDE-REPORT.example.md">examples/STRIDE-REPORT.example.md</a> —
   24 threats over 23 elements and 4 trust boundaries, run against
   <a href="examples/vulnerable-app/">examples/vulnerable-app/</a>, with every threat
   the route audit also confirmed linked to it by finding number.
@@ -181,20 +181,20 @@ OWASP id fails the build.
 /api-secure-report en                         # another language; ids, paths and code stay as-is
 /api-secure-report pt-BR src/modules/orders   # scoped to a subdirectory
 
-/threat-model                                 # same two arguments, same defaults
-/threat-model en
-/threat-model pt-BR src/modules/payments
+/app-stride-report                            # same two arguments, same defaults
+/app-stride-report en
+/app-stride-report pt-BR src/modules/payments
 ```
 
 Each prints to the terminal and writes its document to the project root,
 overwriting the previous one. Run them in either order — if `SECURITY-REPORT.md`
-already exists, `/threat-model` reads it and marks the threats that report
+already exists, `/app-stride-report` reads it and marks the threats that report
 already confirmed in code, citing it by finding number.
 
 ## A threat is not a finding
 
 `/api-secure-report` reports defects it opened a file to confirm, so every
-finding carries a `file:line`. `/threat-model` reports what could go wrong,
+finding carries a `file:line`. `/app-stride-report` reports what could go wrong,
 including the mitigations that are simply absent — and an absent mitigation has
 no line to point at. So instead of a location it owes you an account of where it
 searched. A threat with neither is discarded at consolidation, not published.
@@ -230,7 +230,7 @@ skills/
                       stacks/   nestjs, laravel, spring-boot, _TEMPLATE
                       templates/SECURITY-NOTES.md
   api-secure-report/  SKILL.md + references/ — the reference consumer of secure-coding
-  threat-model/       SKILL.md + references/, and stride/ (S, T, R, I, D, E)
+  app-stride-report/  SKILL.md + references/, and stride/ (S, T, R, I, D, E)
                       its own ids, its own material — cites nothing above it
 agents/               security-auditor, threat-modeler — the read-only workers the two
                       commands fan out to. tools: Read, Glob, Grep, Bash. No Write, no Edit
@@ -258,7 +258,7 @@ taxonomy comes from. The prose, review questions, pseudocode and grep signals
 are original work written for this repository; they are not an OWASP publication.
 
 **STRIDE.** STRIDE is Microsoft's threat classification, published and
-unencumbered. The material in `skills/threat-model/stride/` — the questions, the
+unencumbered. The material in `skills/app-stride-report/stride/` — the questions, the
 element matrix, the mitigation patterns and the grep signals — is original work
 written for this repository and is not a Microsoft publication.
 

@@ -106,23 +106,23 @@ grep -q "^## \[$v_plugin\]" "$REPO/CHANGELOG.md" 2>/dev/null \
   || fail "CHANGELOG.md has no ## [$v_plugin] entry"
 
 
-# The threat-model skill carries its own material and its own ids. Checks 9-13
+# The app-stride-report skill carries its own material and its own ids. Checks 9-13
 # hold it to the same promises the core makes, plus the one it makes alone: the
 # two bodies of material never cite each other, so either is usable without the
 # other installed.
 
-TM="$REPO/skills/threat-model"
+TM="$REPO/skills/app-stride-report"
 
-# 9 — every threat-model manifest row points at a file that exists -----------
-printf '%s\n' "${bold}threat-model manifest rows resolve${off}"
+# 9 — every app-stride-report manifest row points at a file that exists -----------
+printf '%s\n' "${bold}app-stride-report manifest rows resolve${off}"
 tmissing=0
 while read -r f; do
-  [ -f "$TM/$f" ] || { fail "threat-model manifest cites $f, which does not exist"; tmissing=1; }
+  [ -f "$TM/$f" ] || { fail "app-stride-report manifest cites $f, which does not exist"; tmissing=1; }
 done < <(grep -oE '`(stride|references)/[A-Za-z0-9._-]+\.md`' "$TM/SKILL.md" | tr -d '`' | sort -u)
-[ "$tmissing" = 0 ] && pass "every file named in the threat-model manifest exists"
+[ "$tmissing" = 0 ] && pass "every file named in the app-stride-report manifest exists"
 
 # 10 — every stride category and reference is in the manifest ----------------
-printf '%s\n' "${bold}no orphan threat-model files${off}"
+printf '%s\n' "${bold}no orphan app-stride-report files${off}"
 torphans=0
 for f in "$TM"/stride/*.md "$TM"/references/*.md; do
   rel="${f#"$TM"/}"
@@ -130,16 +130,16 @@ for f in "$TM"/stride/*.md "$TM"/references/*.md; do
 done
 [ "$torphans" = 0 ] && pass "every stride and reference file has a manifest row"
 
-# 11 — every ref the threat-model enumerates is a real threat question -------
-printf '%s\n' "${bold}threat-model refs exist as threat questions${off}"
+# 11 — every ref the app-stride-report enumerates is a real threat question -------
+printf '%s\n' "${bold}app-stride-report refs exist as threat questions${off}"
 badt=0
 while read -r q; do
   cat="${q%%.*}"
   f=$(ls "$TM"/stride/"$cat"-*.md 2>/dev/null | head -1)
-  [ -n "$f" ] || { fail "threat-model cites $q but there is no $cat file"; badt=1; continue; }
-  grep -qF "**$q**" "$f" || { fail "threat-model cites $q, which is not a threat question in $(basename "$f")"; badt=1; }
+  [ -n "$f" ] || { fail "app-stride-report cites $q but there is no $cat file"; badt=1; continue; }
+  grep -qF "**$q**" "$f" || { fail "app-stride-report cites $q, which is not a threat question in $(basename "$f")"; badt=1; }
 done < <(grep -rhoE '\b[STRIDE]\.Q[0-9]+\b' "$TM/SKILL.md" "$TM"/references/ | sort -u)
-[ "$badt" = 0 ] && pass "every id enumerated in the threat-model references is a real threat question"
+[ "$badt" = 0 ] && pass "every id enumerated in the app-stride-report references is a real threat question"
 
 # 12 — threat questions are numbered without gaps ----------------------------
 printf '%s\n' "${bold}threat questions are contiguous${off}"
@@ -160,9 +160,9 @@ printf '%s\n' "${bold}taxonomies stay separate${off}"
 leak=$(grep -rnE 'A[0-9]{2}\.Q[0-9]+|A[0-9]{2}:2025|\b(NEST|LAR|SPR)\.[0-9]+|secure-coding|RULES_ROOT' \
   "$TM" "$REPO/agents/threat-modeler.md" 2>/dev/null || true)
 if [ -n "$leak" ]; then
-  while read -r l; do fail "threat-model material is coupled to the rules skill: $l"; done <<< "$leak"
+  while read -r l; do fail "app-stride-report material is coupled to the rules skill: $l"; done <<< "$leak"
 else
-  pass "no threat-model file cites an OWASP id, a stack id, or the rules skill"
+  pass "no app-stride-report file cites an OWASP id, a stack id, or the rules skill"
 fi
 printf '\n'
 if [ "$fails" -gt 0 ]; then

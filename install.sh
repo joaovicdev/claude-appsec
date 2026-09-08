@@ -13,7 +13,7 @@
 set -euo pipefail
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SKILLS=(secure-coding api-secure-report threat-model)
+SKILLS=(secure-coding api-secure-report app-stride-report)
 AGENTS=(security-auditor threat-modeler)
 TRIGGER_LINE='@.claude/skills/secure-coding/TRIGGER.md'
 STAMP='.claude/.secure-coding-version'
@@ -96,7 +96,7 @@ install_project() {
 
   # both generated documents describe how to attack this codebase
   local gi="$root/.gitignore" missing=""
-  for doc in SECURITY-REPORT.md THREAT-MODEL.md; do
+  for doc in SECURITY-REPORT.md STRIDE-REPORT.md; do
     if [ -f "$gi" ] && grep -qxF "$doc" "$gi"; then
       ok ".gitignore already covers $doc"
     else

@@ -41,5 +41,5 @@ jobs:
           test "$(grep -c 'TRIGGER.md' /tmp/target/CLAUDE.md)" = 1
           test -f /tmp/target/.claude/agents/security-auditor.md
           test -f /tmp/target/.claude/agents/threat-modeler.md
-          test -d /tmp/target/.claude/skills/threat-model
-          grep -qxF THREAT-MODEL.md /tmp/target/.gitignore
+          test -d /tmp/target/.claude/skills/app-stride-report
+          grep -qxF STRIDE-REPORT.md /tmp/target/.gitignore

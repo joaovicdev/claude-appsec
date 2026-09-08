@@ -8,7 +8,7 @@
   "plugins": [
     {
       "name": "claude-appsec",
-      "description": "Code security for Claude Code: OWASP Top 10:2025 rules the agent applies while it writes backend/API code in any language, /api-secure-report for a full security inventory of every HTTP route, and /threat-model for a STRIDE threat model of the system.",
+      "description": "Code security for Claude Code: OWASP Top 10:2025 rules the agent applies while it writes backend/API code in any language, /api-secure-report for a full security inventory of every HTTP route, and /app-stride-report for a STRIDE threat model of the system.",
       "source": "./",
       "version": "2.0.0",
       "category": "security",

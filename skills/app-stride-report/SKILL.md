@@ -1,10 +1,10 @@
 ---
-name: threat-model
-description: STRIDE threat model of the project under review — system decomposition, a data-flow diagram with trust boundaries, and every threat per element with its attack path, current status and mitigation, written in the user's language (pt-BR by default). Use when the user runs /threat-model, or asks for a threat model, STRIDE analysis, attack surface review, or an assessment of the project's trust boundaries.
+name: app-stride-report
+description: STRIDE threat model of the project under review — system decomposition, a data-flow diagram with trust boundaries, and every threat per element with its attack path, current status and mitigation, written in the user's language (pt-BR by default). Use when the user runs /app-stride-report, or asks for a threat model, STRIDE analysis, attack surface review, or an assessment of the project's trust boundaries.
 allowed-tools: Read, Glob, Grep, Bash, Write, Agent
 ---
 
-# Threat model — STRIDE
+# App STRIDE report
 
 Produces one artifact: a model of the system under review — its actors,
 processes, stores, flows and trust boundaries — with every threat that applies
@@ -27,11 +27,11 @@ A threat whose mitigation is absent has no line of code to point at — that
 absence *is* the threat, and it is the main product of this exercise. So this
 skill does not require a `file:line` per threat. It requires something harder to
 fake: an account of where the agent looked. See the evidence rule in
-`references/threat-model-format.md`.
+`references/report-format.md`.
 
 ## Arguments
 
-`/threat-model [language] [path]` — both positional, both optional.
+`/app-stride-report [language] [path]` — both positional, both optional.
 
 | Argument | Default | Meaning |
 |---|---|---|
@@ -49,7 +49,7 @@ fake: an account of where the agent looked. See the evidence rule in
 | D | `stride/D-denial-of-service.md` | processes, flows and stores — limits, unbounded work, shared finite resources, timeouts and retries, cost per invocation |
 | E | `stride/E-elevation-of-privilege.md` | processes — where the authorization decision is made, entitlement in the lookup, caller-influenced roles, internal trust, admin surfaces, process privilege |
 | — | `references/decomposition.md` | always, in Step 2 — element shapes, the boundary catalogue, the STRIDE-per-element matrix, discovery recipes |
-| — | `references/threat-model-format.md` | always, in Steps 4 and 6 — the return contract, the evidence rule, risk, the output template |
+| — | `references/report-format.md` | always, in Steps 4 and 6 — the return contract, the evidence rule, risk, the output template |
 
 Every path is relative to this skill's own directory, so the same bytes work
 whether this was installed as a plugin, committed into a project's
@@ -99,7 +99,7 @@ on it, so it has to be visible enough to be corrected.
 ## Step 3 — Draw it, and show it
 
 Emit the Mermaid data-flow diagram from the template in
-`references/threat-model-format.md`: one `subgraph` per trust boundary, every
+`references/report-format.md`: one `subgraph` per trust boundary, every
 element inside the boundary it belongs to, every flow labelled with what it
 carries.
 
@@ -140,7 +140,7 @@ Every subagent prompt states, explicitly:
   that knows the other side is there.
 - **The slice it owns**, and that everything outside it belongs to another agent.
 - **Which `stride/` files to read**, from the matrix.
-- The return contract from `references/threat-model-format.md`, in **English**.
+- The return contract from `references/report-format.md`, in **English**.
 
 ## Step 5 — Consolidate
 
@@ -164,16 +164,16 @@ Every subagent prompt states, explicitly:
 
 ## Step 6 — Emit
 
-Print the model to the terminal **and** write it to `THREAT-MODEL.md` at
+Print the model to the terminal **and** write it to `STRIDE-REPORT.md` at
 `SCAN_ROOT` — not in this skill's own repository. If that file already exists,
 say so and that it is being overwritten.
 
 **This document maps the attack surface, including the parts nobody has tried
-yet.** Before finishing, check whether `THREAT-MODEL.md` is covered by the
+yet.** Before finishing, check whether `STRIDE-REPORT.md` is covered by the
 project's `.gitignore`. If it is not, say so plainly and offer to add it — one
 line, at the user's call. Do not add it silently, and do not skip the question.
 
-Use the template in `references/threat-model-format.md`. Translate the prose and
+Use the template in `references/report-format.md`. Translate the prose and
 the labels into the requested language. Never translate: ids (`S.Q1`, `TM-04`),
 file paths, route paths, HTTP methods, identifiers, or code.
 

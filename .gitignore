@@ -13,5 +13,5 @@ SECURITY-REPORT.md
 !examples/SECURITY-REPORT.example.md
 
 # a generated threat model maps the surface nobody has attacked yet
-THREAT-MODEL.md
-!examples/THREAT-MODEL.example.md
+STRIDE-REPORT.md
+!examples/STRIDE-REPORT.example.md

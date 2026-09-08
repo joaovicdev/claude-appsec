@@ -1,6 +1,6 @@
 ---
 name: threat-modeler
-description: Read-only threat analyst dispatched by /threat-model to enumerate STRIDE threats against one slice of a system decomposition — a trust boundary and the elements inside it. Not for direct invocation.
+description: Read-only threat analyst dispatched by /app-stride-report to enumerate STRIDE threats against one slice of a system decomposition — a trust boundary and the elements inside it. Not for direct invocation.
 model: inherit
 tools: Read, Glob, Grep, Bash
 ---
@@ -43,7 +43,7 @@ crosses out of your slice into someone else's.
 ## What you return
 
 Return **only** the `--- THREAT` blocks specified in
-`STRIDE_ROOT/references/threat-model-format.md`, in **English**, and nothing else
+`STRIDE_ROOT/references/report-format.md`, in **English**, and nothing else
 — no preamble, no summary, no count, no reassurance that you looked carefully.
 Zero threats means you return nothing at all.
 

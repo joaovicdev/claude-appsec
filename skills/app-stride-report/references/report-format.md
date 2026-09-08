@@ -1,4 +1,4 @@
-# Threat model format
+# Report format
 
 Three contracts: what a subagent returns, how risk is decided, and the shape of
 the final document.
