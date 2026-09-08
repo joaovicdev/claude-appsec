@@ -1,19 +1,20 @@
 #!/usr/bin/env bash
 #
-# claude-owasp-10 installer — github.com/joaovicdev/claude-owasp-10
+# claude-appsec installer — github.com/joaovicdev/claude-appsec
 #
 #   ./install.sh                     install for your user, every project
 #   ./install.sh --project [path]    install into one repository, for the team
 #   ./install.sh --check   [path]    report what is installed, where, and whether it is stale
 #
 # Installing as a Claude Code plugin is the other route and needs no clone:
-#   /plugin marketplace add joaovicdev/claude-owasp-10
-#   /plugin install secure-coding@claude-owasp-10
+#   /plugin marketplace add joaovicdev/claude-appsec
+#   /plugin install claude-appsec@claude-appsec
 
 set -euo pipefail
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SKILLS=(secure-coding api-secure-report)
+SKILLS=(secure-coding api-secure-report threat-model)
+AGENTS=(security-auditor threat-modeler)
 TRIGGER_LINE='@.claude/skills/secure-coding/TRIGGER.md'
 STAMP='.claude/.secure-coding-version'
 
@@ -29,7 +30,7 @@ version() {
     "$REPO/.claude-plugin/plugin.json" | head -1
 }
 
-[ -f "$REPO/.claude-plugin/plugin.json" ] || die "run this from a clone of claude-owasp-10 (no .claude-plugin/plugin.json next to the script)"
+[ -f "$REPO/.claude-plugin/plugin.json" ] || die "run this from a clone of claude-appsec (no .claude-plugin/plugin.json next to the script)"
 VERSION="$(version)"
 [ -n "$VERSION" ] || die "could not read the version out of .claude-plugin/plugin.json"
 
@@ -43,8 +44,10 @@ install_global() {
     ln -sfn "$REPO/skills/$s" "$dest/skills/$s"
     ok "skills/$s → $dest/skills/$s"
   done
-  ln -sfn "$REPO/agents/security-auditor.md" "$dest/agents/security-auditor.md"
-  ok "agents/security-auditor.md → $dest/agents/security-auditor.md"
+  for a in "${AGENTS[@]}"; do
+    ln -sfn "$REPO/agents/$a.md" "$dest/agents/$a.md"
+    ok "agents/$a.md → $dest/agents/$a.md"
+  done
 
   say ""
   say "${bold}One step left, and it is not optional.${off}"
@@ -73,8 +76,10 @@ install_project() {
     cp -R "$REPO/skills/$s" "$dest/skills/$s"
     ok "skills/$s → .claude/skills/$s"
   done
-  cp "$REPO/agents/security-auditor.md" "$dest/agents/security-auditor.md"
-  ok "agents/security-auditor.md → .claude/agents/security-auditor.md"
+  for a in "${AGENTS[@]}"; do
+    cp "$REPO/agents/$a.md" "$dest/agents/$a.md"
+    ok "agents/$a.md → .claude/agents/$a.md"
+  done
 
   printf '%s\n' "$VERSION" > "$root/$STAMP"
   ok "version $VERSION stamped in $STAMP"
@@ -89,14 +94,22 @@ install_project() {
     ok "trigger import appended to CLAUDE.md"
   fi
 
-  # a generated report spells out how to exploit this codebase
-  local gi="$root/.gitignore"
-  if [ -f "$gi" ] && grep -qxF 'SECURITY-REPORT.md' "$gi"; then
-    ok ".gitignore already covers SECURITY-REPORT.md"
-  else
+  # both generated documents describe how to attack this codebase
+  local gi="$root/.gitignore" missing=""
+  for doc in SECURITY-REPORT.md THREAT-MODEL.md; do
+    if [ -f "$gi" ] && grep -qxF "$doc" "$gi"; then
+      ok ".gitignore already covers $doc"
+    else
+      missing="$missing $doc"   # a string, not an array: bash 3.2 + set -u
+    fi
+  done
+  if [ -n "$missing" ]; then
     [ -f "$gi" ] && printf '\n' >> "$gi"
-    printf '# quotes internal paths and describes how to exploit them\nSECURITY-REPORT.md\n' >> "$gi"
-    ok "SECURITY-REPORT.md added to .gitignore"
+    printf '# quotes internal paths and describes how to exploit them\n' >> "$gi"
+    for doc in $missing; do
+      printf '%s\n' "$doc" >> "$gi"
+      ok "$doc added to .gitignore"
+    done
   fi
 
   say ""
@@ -126,9 +139,11 @@ check() {
     else
       warn "        no trigger in CLAUDE.md — the skill will sit there unused"
     fi
-    [ -f "$root/.claude/agents/security-auditor.md" ] \
-      && ok "        security-auditor agent present" \
-      || warn "        security-auditor agent missing — /api-secure-report loses enforced read-only"
+    for a in "${AGENTS[@]}"; do
+      [ -f "$root/.claude/agents/$a.md" ] \
+        && ok "        $a agent present" \
+        || warn "        $a agent missing — the skill that dispatches it loses enforced read-only"
+    done
   fi
 
   if [ -e "$HOME/.claude/skills/secure-coding/SKILL.md" ]; then
@@ -142,7 +157,7 @@ check() {
   fi
 
   # a cache directory can outlive an uninstall — the registry is the authority
-  if grep -qs '"secure-coding@' "$HOME/.claude/plugins/installed_plugins.json"; then
+  if grep -qs '"claude-appsec@' "$HOME/.claude/plugins/installed_plugins.json"; then
     found=1
     say "${bold}plugin${off}      installed via /plugin"
     ok "        agent and skills ship together"

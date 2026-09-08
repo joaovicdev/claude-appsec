@@ -1,4 +1,4 @@
-<!-- secure-coding trigger v1.0.0 — github.com/joaovicdev/claude-owasp-10 -->
+<!-- secure-coding trigger v2.0.0 — github.com/joaovicdev/claude-appsec -->
 
 ## Security baseline
 

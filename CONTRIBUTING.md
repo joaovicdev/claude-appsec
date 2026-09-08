@@ -1,6 +1,11 @@
-# Adding or tightening a stack file
+# Contributing
 
-## The rule that matters
+Two bodies of material live here — the OWASP rules under
+`skills/secure-coding/` and the STRIDE material under `skills/threat-model/`.
+The first half of this file is the recipe for a stack file; the conventions from
+`## Cross-reference discipline` onwards apply to both.
+
+## Adding a stack file — ground it, or mark it
 
 **Ground it, or mark it.** A stack file written from documentation is worth less
 than one written from code that was actually wrong, and the difference must be
@@ -14,7 +19,7 @@ visible in the header:
 Never quietly promote a file from unverified to grounded. Promote it when you
 have read real projects and rewritten the items around what they got wrong.
 
-## Recipe
+## Recipe for a stack file
 
 1. **Survey before writing.** Read every project on this machine using the stack.
    For each, answer: how is input validated, where does authorization live, what
@@ -71,6 +76,35 @@ The ten core files are agnostic. Anything that names a framework, a package, or 
 language API belongs in `stacks/`. The test: if a sentence would confuse someone
 reading it in a Go or Python project, it is in the wrong file.
 
+## The threat material is a separate body
+
+`skills/threat-model/stride/` is the second body of material in this repository
+and it is deliberately independent: its own ids (`S.Q1`…`E.Q6`), its own files,
+its own consumer. It answers a different question — *what could go wrong here by
+design* — over a different unit of analysis: the trust boundary, not the route.
+
+**Neither body cites the other.** Not as a "see also", not in a comment. Check 13
+of `scripts/check-ids.sh` fails the build on an OWASP id, a stack id, or a
+reference to the rules skill appearing anywhere under `skills/threat-model/` or
+in `agents/threat-modeler.md`. The reason is portability: either half has to be
+usable, and correct, with the other uninstalled. A single convenience
+cross-reference is how that stops being true.
+
+The conventions are otherwise the same — stable ids, contiguous numbering,
+questions answerable yes/no, grep signals as a pre-filter, nothing hardcoding an
+install path — and checks 9–13 enforce them the same way. Two things differ, and
+both are load-bearing:
+
+- **`## Which elements it applies to`** replaces `## Idiom by stack`. Stack idiom
+  lives in the rules skill, which this one does not read; the element matrix in
+  `references/decomposition.md` is what drives the fan-out instead, and a
+  category file must agree with it.
+- **Evidence is an account of the search, not a `file:line`.** A threat whose
+  mitigation is absent has no line to cite. The auditor's rule would delete the
+  main product of a threat model, which is why `threat-modeler` is a separate
+  agent rather than a prompt on the existing one. Do not "fix" this by adding a
+  location requirement.
+
 ## Conventions worth preserving
 
 - **IDs are stable and never renumbered.** A future edition goes in
@@ -81,5 +115,7 @@ reading it in a Go or Python project, it is in the wrong file.
 - **Nothing restates the material.** Consumers read these files and cite ids.
 - **Nothing shipped hardcodes an install path** — that is what lets one set of
   bytes work as a plugin, in a project, or in your home directory.
+- **The two bodies of material never cite each other**, so either is usable
+  alone.
 
 `./scripts/check-ids.sh` enforces all of these that can be enforced mechanically.

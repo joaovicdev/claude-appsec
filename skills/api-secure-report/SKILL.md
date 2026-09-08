@@ -78,7 +78,7 @@ under **Limits** in the report. Never let an uncovered area read as a clean one.
 ## Step 3 — Fan out
 
 Dispatch both axes together as **`security-auditor`** subagents — the agent
-shipped alongside these skills, named `secure-coding:security-auditor` under a
+shipped alongside these skills, named `claude-appsec:security-auditor` under a
 plugin install and `security-auditor` otherwise. It has no `Write` and no `Edit`,
 so read-only is enforced by its definition rather than by asking politely in a
 prompt.

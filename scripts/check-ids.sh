@@ -47,16 +47,16 @@ while read -r ref; do
 done < <(grep -hoE 'stacks/[a-z-]+\.md \([A-Z]+\.[0-9]+(, ?[A-Z]+\.[0-9]+)*\)' "$CORE"/owasp/*.md | sort -u)
 [ "$badref" = 0 ] && pass "every → stacks/x.md (ID) points at an id that exists"
 
-# 4 — every ref the report format enumerates is a real review question -------
-printf '%s\n' "${bold}report-format refs exist as review questions${off}"
+# 4 — every ref a consumer enumerates is a real review question --------------
+printf '%s\n' "${bold}consumer refs exist as review questions${off}"
 badq=0
 while read -r q; do
   cat="${q%%.*}"
   f=$(ls "$CORE"/owasp/"$cat"-*.md 2>/dev/null | head -1)
-  [ -n "$f" ] || { fail "report-format cites $q but there is no $cat file"; badq=1; continue; }
-  grep -qF "**$q**" "$f" || { fail "report-format cites $q, which is not a review question in $(basename "$f")"; badq=1; }
-done < <(grep -oE '\bA[0-9]{2}\.Q[0-9]+\b' "$REPO/skills/api-secure-report/references/report-format.md" | sort -u)
-[ "$badq" = 0 ] && pass "every id enumerated in report-format.md is a real review question"
+  [ -n "$f" ] || { fail "a consumer cites $q but there is no $cat file"; badq=1; continue; }
+  grep -qF "**$q**" "$f" || { fail "a consumer cites $q, which is not a review question in $(basename "$f")"; badq=1; }
+done < <(grep -rhoE '\bA[0-9]{2}\.Q[0-9]+\b' "$REPO"/skills/*/references/ | sort -u)
+[ "$badq" = 0 ] && pass "every id enumerated by a consumer is a real review question"
 
 # 5 — review questions are numbered without gaps -----------------------------
 printf '%s\n' "${bold}review questions are contiguous${off}"
@@ -105,6 +105,65 @@ grep -q "^## \[$v_plugin\]" "$REPO/CHANGELOG.md" 2>/dev/null \
   && pass "CHANGELOG.md has an entry for $v_plugin" \
   || fail "CHANGELOG.md has no ## [$v_plugin] entry"
 
+
+# The threat-model skill carries its own material and its own ids. Checks 9-13
+# hold it to the same promises the core makes, plus the one it makes alone: the
+# two bodies of material never cite each other, so either is usable without the
+# other installed.
+
+TM="$REPO/skills/threat-model"
+
+# 9 — every threat-model manifest row points at a file that exists -----------
+printf '%s\n' "${bold}threat-model manifest rows resolve${off}"
+tmissing=0
+while read -r f; do
+  [ -f "$TM/$f" ] || { fail "threat-model manifest cites $f, which does not exist"; tmissing=1; }
+done < <(grep -oE '`(stride|references)/[A-Za-z0-9._-]+\.md`' "$TM/SKILL.md" | tr -d '`' | sort -u)
+[ "$tmissing" = 0 ] && pass "every file named in the threat-model manifest exists"
+
+# 10 — every stride category and reference is in the manifest ----------------
+printf '%s\n' "${bold}no orphan threat-model files${off}"
+torphans=0
+for f in "$TM"/stride/*.md "$TM"/references/*.md; do
+  rel="${f#"$TM"/}"
+  grep -qF "\`$rel\`" "$TM/SKILL.md" || { fail "$rel exists but no manifest row loads it"; torphans=1; }
+done
+[ "$torphans" = 0 ] && pass "every stride and reference file has a manifest row"
+
+# 11 — every ref the threat-model enumerates is a real threat question -------
+printf '%s\n' "${bold}threat-model refs exist as threat questions${off}"
+badt=0
+while read -r q; do
+  cat="${q%%.*}"
+  f=$(ls "$TM"/stride/"$cat"-*.md 2>/dev/null | head -1)
+  [ -n "$f" ] || { fail "threat-model cites $q but there is no $cat file"; badt=1; continue; }
+  grep -qF "**$q**" "$f" || { fail "threat-model cites $q, which is not a threat question in $(basename "$f")"; badt=1; }
+done < <(grep -rhoE '\b[STRIDE]\.Q[0-9]+\b' "$TM/SKILL.md" "$TM"/references/ | sort -u)
+[ "$badt" = 0 ] && pass "every id enumerated in the threat-model references is a real threat question"
+
+# 12 — threat questions are numbered without gaps ----------------------------
+printf '%s\n' "${bold}threat questions are contiguous${off}"
+tgaps=0
+for f in "$TM"/stride/*.md; do
+  base=$(basename "$f" .md); cat="${base%%-*}"
+  n=0
+  while read -r i; do
+    n=$((n + 1))
+    [ "$i" = "$n" ] || { fail "$base jumps from Q$((n - 1)) to Q$i — ids must never be renumbered, but they must not skip either"; tgaps=1; n=$i; }
+  done < <(grep -oE "\*\*$cat\.Q[0-9]+\*\*" "$f" | sed -E 's/.*\.Q([0-9]+)\*\*/\1/')
+  [ "$n" = 0 ] && { fail "$base has no threat questions"; tgaps=1; }
+done
+[ "$tgaps" = 0 ] && pass "every stride category numbers its threat questions 1..n"
+
+# 13 — the two bodies of material stay independent ---------------------------
+printf '%s\n' "${bold}taxonomies stay separate${off}"
+leak=$(grep -rnE 'A[0-9]{2}\.Q[0-9]+|A[0-9]{2}:2025|\b(NEST|LAR|SPR)\.[0-9]+|secure-coding|RULES_ROOT' \
+  "$TM" "$REPO/agents/threat-modeler.md" 2>/dev/null || true)
+if [ -n "$leak" ]; then
+  while read -r l; do fail "threat-model material is coupled to the rules skill: $l"; done <<< "$leak"
+else
+  pass "no threat-model file cites an OWASP id, a stack id, or the rules skill"
+fi
 printf '\n'
 if [ "$fails" -gt 0 ]; then
   printf '%s%d check(s) failed%s\n' "$red" "$fails" "$off"

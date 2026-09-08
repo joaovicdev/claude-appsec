@@ -1,19 +1,19 @@
 {
-  "name": "claude-owasp-10",
-  "description": "OWASP Top 10:2025 secure-coding material for Claude Code, written to be read by an agent while it writes backend code.",
+  "name": "claude-appsec",
+  "description": "Code security skills for Claude Code, written to be read by an agent — OWASP Top 10:2025 rules applied while it writes backend code, a full route audit, and a STRIDE threat model.",
   "owner": {
     "name": "João Victor",
     "url": "https://github.com/joaovicdev"
   },
   "plugins": [
     {
-      "name": "secure-coding",
-      "description": "OWASP Top 10:2025 rules for writing and reviewing backend/API code in any language, plus /api-secure-report — a full security inventory of every HTTP route in a project.",
+      "name": "claude-appsec",
+      "description": "Code security for Claude Code: OWASP Top 10:2025 rules the agent applies while it writes backend/API code in any language, /api-secure-report for a full security inventory of every HTTP route, and /threat-model for a STRIDE threat model of the system.",
       "source": "./",
-      "version": "1.0.0",
+      "version": "2.0.0",
       "category": "security",
-      "tags": ["security", "owasp", "code-review", "backend", "api"],
-      "homepage": "https://github.com/joaovicdev/claude-owasp-10",
+      "tags": ["security", "appsec", "owasp", "stride", "threat-modeling", "code-review", "backend", "api"],
+      "homepage": "https://github.com/joaovicdev/claude-appsec",
       "license": "MIT"
     }
   ]
