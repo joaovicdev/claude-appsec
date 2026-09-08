@@ -11,13 +11,13 @@ executes your code, nothing leaves your machine.
 <p align="center">
   <a href="examples/example-data-flow-diagram.png">
     <img src="examples/example-data-flow-diagram.png" width="860"
-         alt="Data-flow diagram produced by /app-stride-report: four zones — untrusted internet, the authenticated application zone, third-party network and the data zone — with actors, controllers and stores as nodes, and every crossing labelled with its protocol and credential: POST /webhooks/payments over HMAC, a WebSocket handshake that only decodes the token, SQL with TLS off, a caller-supplied path reaching execSync.">
+         alt="Data-flow diagram produced by /app-stride-report: trust boundaries drawn as zones — untrusted internet, the authenticated zone, the NestJS application, build/runtime, third party and the data zone — with actors, guards, controllers, services and stores as nodes, and every crossing labelled with its protocol and credential: bearer JWT and x-api-key or ?api_key= into the guards, POST /webhooks/payments carrying x-provider-signature, a WebSocket handshake authenticated by ?token=, a caller-supplied path reaching readFileSync and execSync, an outbound call with TLS verification off, request headers, body and decoded claims written to the log sink, and stack traces plus SQL returned in the HTTP response.">
   </a>
 </p>
 <p align="center"><sub>
   The data-flow diagram <code>/app-stride-report</code> writes into <code>STRIDE-REPORT.md</code>,
-  rendered from Mermaid — one of the three skills below. From a real run
-  (pt-BR, the default language); click to enlarge.
+  rendered from Mermaid — one of the three skills below. From a real run;
+  click to enlarge.
 </sub></p>
 
 ## What you get
@@ -124,11 +124,12 @@ it came from. The work fans out over read-only `security-auditor` subagents.
 
 <p align="center">
   <img src="examples/example-security-report.png" width="700"
-       alt="Summary and route inventory of a /api-secure-report run: severity and OWASP-category counts, then every route with its file, guard and the ids of its findings">
+       alt="Header and summary of a /api-secure-report run: stack, scope and date, 27 routes scanned — 22 with findings, 5 clean — then 90 findings counted by severity (21 critical, 37 high, 23 medium, 9 low) and by OWASP category, A01 through A10 plus the NestJS stack idiom rows.">
 </p>
 <p align="center"><sub>
-  Summary and route inventory from a real run (pt-BR, the default language).
-  Full report in English: <a href="examples/SECURITY-REPORT.example.md">examples/SECURITY-REPORT.example.md</a>,
+  Header and summary from a real run: 27 routes scanned, 90 findings counted by
+  severity and by OWASP category.
+  Full report: <a href="examples/SECURITY-REPORT.example.md">examples/SECURITY-REPORT.example.md</a>,
   run against <a href="examples/vulnerable-app/">examples/vulnerable-app/</a>.
 </sub></p>
 
@@ -142,28 +143,28 @@ each threat today, or where it looked and found nothing. STRIDE is Microsoft's
 classification — see [Attribution](#attribution).
 
 ```
-## Matriz STRIDE
-✔ sem ameaça aberta · ⚠ parcial ou latente · ✘ aberta · — não se aplica
+## STRIDE matrix
+✔ no open threat · ⚠ partial or latent · ✘ open · — does not apply
 
-| Elemento              | S | T | R | I | D | E |
+| Element               | S | T | R | I | D | E |
 |-----------------------|---|---|---|---|---|---|
 | OrdersController      | ✔ | ⚠ | ✘ | ✘ | ✘ | ✘ |
 | orders (PostgreSQL)   | — | ✔ | ✘ | ⚠ | ✔ | — |
 
-### TM-01 — OrdersController — Risco alto — `E.Q3`
+### TM-01 — OrdersController — High risk — `E.Q3`
 
-  Estado atual: aberto — procurado em src/orders/, src/common/guards/ e
-  app.module.ts; nenhuma query é escopada pelo chamador.
+  Current state: open — looked in src/orders/, src/common/guards/ and
+  app.module.ts; no query is scoped by the caller.
 ```
 
 <p align="center">
   <img src="examples/example-stride-report.png" width="700"
-       alt="Header and summary of an /app-stride-report run: stack, scope and date, then the element counts — 6 actors, 15 processes, 5 stores, 13 flows, 8 trust boundaries — and 69 numbered threats broken down by risk and by STRIDE category.">
+       alt="Header and summary of an /app-stride-report run: stack, scope and date, then the element counts — 7 actors, 20 processes, 6 stores, 26 flows, 8 trust boundaries — and 138 numbered threats, 119 open and 13 partial, broken down by risk and by STRIDE category.">
 </p>
 <p align="center"><sub>
-  The same run as the diagram at the top of this page: 69 numbered threats over
-  39 elements, counted by risk and by STRIDE category.
-  Full example in English: <a href="examples/STRIDE-REPORT.example.md">examples/STRIDE-REPORT.example.md</a> —
+  The same run as the diagram at the top of this page: 138 numbered threats over
+  59 elements — 119 open, 13 partial — counted by risk and by STRIDE category.
+  Full example: <a href="examples/STRIDE-REPORT.example.md">examples/STRIDE-REPORT.example.md</a> —
   24 threats over 23 elements and 4 trust boundaries, run against
   <a href="examples/vulnerable-app/">examples/vulnerable-app/</a>, with every threat
   the route audit also confirmed linked to it by finding number.
