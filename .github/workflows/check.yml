@@ -42,4 +42,7 @@ jobs:
           test -f /tmp/target/.claude/agents/security-auditor.md
           test -f /tmp/target/.claude/agents/threat-modeler.md
           test -d /tmp/target/.claude/skills/app-stride-report
+          test -d /tmp/target/.claude/skills/pr-appsec-review
           grep -qxF STRIDE-REPORT.md /tmp/target/.gitignore
+          # the PR review writes no document, so it must add no ignore line
+          test "$(wc -l < /tmp/target/.gitignore)" -le 4

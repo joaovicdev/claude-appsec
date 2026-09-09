@@ -1,4 +1,4 @@
-<!-- secure-coding trigger v2.0.0 — github.com/joaovicdev/claude-appsec -->
+<!-- secure-coding trigger v2.1.0 — github.com/joaovicdev/claude-appsec -->
 
 ## Security baseline
 

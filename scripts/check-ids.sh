@@ -164,6 +164,43 @@ if [ -n "$leak" ]; then
 else
   pass "no app-stride-report file cites an OWASP id, a stack id, or the rules skill"
 fi
+# The pr-appsec-review skill consumes both bodies of material and owns neither. It is
+# the one place the two taxonomies sit in the same directory, and they sit there
+# as two sections — never inside one item. Checks 14-16 hold its own references to
+# the same promises the others make. Its OWASP ids are already covered by check 4,
+# whose glob is skills/*/references/.
+
+PR="$REPO/skills/pr-appsec-review"
+
+# 14 — every pr-appsec-review manifest row points at a file that exists ------
+printf '%s\n' "${bold}pr-appsec-review manifest rows resolve${off}"
+pmissing=0
+while read -r f; do
+  [ -f "$PR/$f" ] || { fail "pr-appsec-review manifest cites $f, which does not exist"; pmissing=1; }
+done < <(grep -oE '`references/[A-Za-z0-9._-]+\.md`' "$PR/SKILL.md" | tr -d '`' | sort -u)
+[ "$pmissing" = 0 ] && pass "every file named in the pr-appsec-review manifest exists"
+
+# 15 — every pr-appsec-review reference is in the manifest -------------------
+printf '%s\n' "${bold}no orphan pr-appsec-review files${off}"
+porphans=0
+for f in "$PR"/references/*.md; do
+  rel="${f#"$PR"/}"
+  grep -qF "\`$rel\`" "$PR/SKILL.md" || { fail "$rel exists but no manifest row loads it"; porphans=1; }
+done
+[ "$porphans" = 0 ] && pass "every pr-appsec-review reference file has a manifest row"
+
+# 16 — the threat ids it cites are real threat questions ---------------------
+# check 4 already did this for the OWASP half; this is the other half.
+printf '%s\n' "${bold}pr-appsec-review threat refs exist as threat questions${off}"
+badp=0
+while read -r q; do
+  cat="${q%%.*}"
+  f=$(ls "$TM"/stride/"$cat"-*.md 2>/dev/null | head -1)
+  [ -n "$f" ] || { fail "pr-appsec-review cites $q but there is no $cat file"; badp=1; continue; }
+  grep -qF "**$q**" "$f" || { fail "pr-appsec-review cites $q, which is not a threat question in $(basename "$f")"; badp=1; }
+done < <(grep -rhoE '\b[STRIDE]\.Q[0-9]+\b' "$PR/SKILL.md" "$PR"/references/ | sort -u)
+[ "$badp" = 0 ] && pass "every threat id enumerated by pr-appsec-review is a real threat question"
+
 printf '\n'
 if [ "$fails" -gt 0 ]; then
   printf '%s%d check(s) failed%s\n' "$red" "$fails" "$off"

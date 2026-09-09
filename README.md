@@ -1,11 +1,12 @@
 # claude-appsec
 
-**Code security for Claude Code.** Three skills: OWASP Top 10:2025 rules Claude
+**Code security for Claude Code.** Four skills: OWASP Top 10:2025 rules Claude
 applies **while it writes your backend code**, `/api-secure-report`, which audits
-every HTTP route in a project, and `/app-stride-report`, which maps the system's trust
-boundaries and works STRIDE across them.
+every HTTP route in a project, `/app-stride-report`, which maps the system's trust
+boundaries and works STRIDE across them, and `/pr-appsec-review`, which asks both
+questions of a single pull request.
 
-Markdown the agent reads, plus two read-only commands. Not a scanner — nothing
+Markdown the agent reads, plus three read-only commands. Not a scanner — nothing
 executes your code, nothing leaves your machine.
 
 <p align="center">
@@ -22,20 +23,20 @@ executes your code, nothing leaves your machine.
 
 ## What you get
 
-One plugin, three skills. The first applies itself; the other two are commands.
+One plugin, four skills. The first applies itself; the other three are commands.
 
 | Skill | What it does | How you invoke it | What it writes |
 |---|---|---|---|
 | `secure-coding` | OWASP Top 10:2025 rules Claude reads *before* it writes a route, guard, query, auth flow, config or dependency — then flags what it just wrote, citing the rule id | nothing to run — the trigger in your `CLAUDE.md` loads it | nothing. Inline flags, while you work |
 | `api-secure-report` | Every HTTP route in the project, each marked clean or carrying findings: route → vulnerability → how an attacker reaches it → fix | `/api-secure-report [language] [path]` | `SECURITY-REPORT.md` at the project root |
 | `app-stride-report` | Decomposes the system into actors, processes, stores, flows and trust boundaries, draws the data-flow diagram, works STRIDE across every element | `/app-stride-report [language] [path]` | `STRIDE-REPORT.md` at the project root |
+| `pr-appsec-review` | Reviews one change in two halves: OWASP findings on the changed code, STRIDE threats on the boundaries it touches — each marked introduced, aggravated or pre-existing, with a computed verdict | `/pr-appsec-review [language] [target] [base]` | nothing. It prints, and leaves the branch untouched |
 
-Both commands take the same two optional arguments: `language` defaults to
-`pt-BR`, `path` to the repository root. Both are read-only, and each overwrites
-its own document on every run.
-
-*Next: a PR-review skill — the same rules and the same ids, applied to a diff
-instead of a repository.*
+The two report commands take the same two optional arguments: `language`
+defaults to `pt-BR`, `path` to the repository root. `/pr-appsec-review` takes a
+target instead — a PR link, or a pair of branches. All three are read-only; the
+two reports overwrite their document on every run, and the PR review writes
+nothing at all.
 
 ## Install
 
@@ -66,7 +67,7 @@ git clone https://github.com/joaovicdev/claude-appsec
 ./claude-appsec/install.sh --project /path/to/your/repo
 ```
 
-This copies the three skills into `.claude/skills/`, both read-only agents into
+This copies the four skills into `.claude/skills/`, both read-only agents into
 `.claude/agents/`, imports the trigger in the repo's `CLAUDE.md`, and gitignores
 `SECURITY-REPORT.md` and `STRIDE-REPORT.md`. Commit the result — teammates get it
 on their next pull.
@@ -175,6 +176,40 @@ else: its own files, its own ids, no cross-citation in either direction. That
 independence is a check in CI, not a promise — a `stride/` file that cites an
 OWASP id fails the build.
 
+## `/pr-appsec-review` — one change, both questions
+
+The other two commands scan a repository; this one reviews a change. Give it a
+pull request link, or a pair of branches — `main`, `dev`, `staging`, whatever
+yours merges into — and it resolves the merge-base, maps every hunk, and asks
+both questions in two halves that run side by side and never mix. A finding cites
+`A01.Q2`; a threat cites `E.Q3`; **no item ever cites both.**
+
+Every item carries an **origin**, decided by reading the same construct at the
+merge-base rather than by guessing — which is what makes the verdict computable
+instead of a matter of mood:
+
+```
+## Veredito
+Bloqueia o merge — o achado 1 introduz leitura de pedido de outro tenant
+em GET /orders/:id. 7 de 7 arquivos alterados lidos com contexto.
+
+### 1. src/orders/orders.controller.ts:31 — Alta — `A01.Q2` — introduzido
+  Onde no PR: @@ -28,6 +28,12 @@ — linha adicionada
+
+### 5. src/main.ts:14 — Média — `NEST.1` — pré-existente
+  Onde no PR: não alterado por este PR — já presente em 9c8d7e6
+```
+
+`pre-existing` is a real answer, not a softer one: a defect in code someone is
+already editing is worth putting in front of them, and it still does not block
+the merge on its own. The STRIDE half adds the thing a line-by-line review cannot
+produce — whether the change **adds, moves, widens or narrows a trust boundary**.
+
+It writes nothing. Not a report, not a comment, not a file in the branch. The
+review is printed, and `git status` afterwards is exactly what it was before.
+Either half runs alone if you installed only one body of material, and says so in
+the header rather than reporting an empty section.
+
 ## Running the commands
 
 ```bash
@@ -185,12 +220,18 @@ OWASP id fails the build.
 /app-stride-report                            # same two arguments, same defaults
 /app-stride-report en
 /app-stride-report pt-BR src/modules/payments
+
+/pr-appsec-review                             # current branch vs the default base
+/pr-appsec-review feature/orders staging      # any pair of branches
+/pr-appsec-review pt-BR https://github.com/org/repo/pull/123
 ```
 
-Each prints to the terminal and writes its document to the project root,
-overwriting the previous one. Run them in either order — if `SECURITY-REPORT.md`
-already exists, `/app-stride-report` reads it and marks the threats that report
-already confirmed in code, citing it by finding number.
+The two reports print to the terminal and write their document to the project
+root, overwriting the previous one. Run them in either order — if
+`SECURITY-REPORT.md` already exists, `/app-stride-report` reads it and marks the
+threats that report already confirmed in code, citing it by finding number.
+`/pr-appsec-review` only prints, and reads both documents if they are there: an
+item either one already records is marked pre-existing, cited by its number.
 
 ## A threat is not a finding
 
@@ -203,10 +244,11 @@ searched. A threat with neither is discarded at consolidation, not published.
 ## Good to know
 
 - **No network.** Plain Markdown, read locally — nothing uploaded, no telemetry.
-- **Nothing is modified.** Neither command has `Edit`, and neither
-  `security-auditor` nor `threat-modeler` has `Write` or `Edit` — enforced by the
-  agent definitions, not requested in a prompt. The only files written are the
-  two documents.
+- **Nothing is modified.** No command has `Edit`, and neither `security-auditor`
+  nor `threat-modeler` has `Write` or `Edit` — enforced by the agent definitions,
+  not requested in a prompt. The only files written are the two reports;
+  `/pr-appsec-review` has no `Write` at all. The one command that can touch a
+  repository at all is a `git fetch` of a pull request head, and it asks first.
 - **Both documents are sensitive.** They quote internal paths and spell out how
   to attack them; the threat model maps the surface nobody has tried yet. Keep
   them out of git (`install.sh --project` does; otherwise the skills offer to).
@@ -233,6 +275,8 @@ skills/
   api-secure-report/  SKILL.md + references/ — the reference consumer of secure-coding
   app-stride-report/  SKILL.md + references/, and stride/ (S, T, R, I, D, E)
                       its own ids, its own material — cites nothing above it
+  pr-appsec-review/   SKILL.md + references/ — consumes both bodies, owns neither.
+                      Two halves, two vocabularies, never in the same item
 agents/               security-auditor, threat-modeler — the read-only workers the two
                       commands fan out to. tools: Read, Glob, Grep, Bash. No Write, no Edit
 examples/             vulnerable-app/ (a NestJS app that is wrong on purpose), the two

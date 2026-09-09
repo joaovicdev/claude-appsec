@@ -86,9 +86,21 @@ design* — over a different unit of analysis: the trust boundary, not the route
 **Neither body cites the other.** Not as a "see also", not in a comment. Check 13
 of `scripts/check-ids.sh` fails the build on an OWASP id, a stack id, or a
 reference to the rules skill appearing anywhere under `skills/app-stride-report/` or
-in `agents/app-stride-reporter.md`. The reason is portability: either half has to be
+in `agents/threat-modeler.md`. The reason is portability: either half has to be
 usable, and correct, with the other uninstalled. A single convenience
 cross-reference is how that stops being true.
+
+**`skills/pr-appsec-review/` is the one exception, and it is a narrow one.** A
+reviewer looking at a pull request wants both questions answered, so that skill
+consumes both bodies. It is a consumer of each and an owner of neither: the two
+halves run side by side, produce separate sections with separate scales and
+separate numbering, and **no single item ever carries both vocabularies** — a
+finding cites `A01.Q2`, a threat cites `E.Q3`, nothing cites the pair. Its
+subagent prompts paste each axis's contract inline rather than pointing an agent
+at that skill's own `references/report-format.md`, precisely because that file
+names both. Either half runs with the other uninstalled and says so in the
+header when it does. That last rule is the one check 13 cannot express, which is
+why it is written here.
 
 The conventions are otherwise the same — stable ids, contiguous numbering,
 questions answerable yes/no, grep signals as a pre-filter, nothing hardcoding an
