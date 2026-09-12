@@ -13,7 +13,7 @@
 set -euo pipefail
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SKILLS=(secure-coding api-secure-report app-stride-report pr-appsec-review)
+SKILLS=(secure-coding api-secure-report app-stride-report pr-appsec-review appsec-test)
 AGENTS=(security-auditor threat-modeler)
 TRIGGER_LINE='@.claude/skills/secure-coding/TRIGGER.md'
 STAMP='.claude/.secure-coding-version'

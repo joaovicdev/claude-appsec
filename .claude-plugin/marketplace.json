@@ -1,6 +1,6 @@
 {
   "name": "claude-appsec",
-  "description": "Code security skills for Claude Code, written to be read by an agent — OWASP Top 10:2025 rules applied while it writes backend code, a full route audit, a STRIDE threat model, and a two-taxonomy review of a pull request.",
+  "description": "Code security skills for Claude Code, written to be read by an agent — OWASP Top 10:2025 rules applied while it writes backend code, a full route audit, a STRIDE threat model, a two-taxonomy review of a pull request, and the failing test that proves a finding is real before it is fixed.",
   "owner": {
     "name": "João Victor",
     "url": "https://github.com/joaovicdev"
@@ -8,11 +8,11 @@
   "plugins": [
     {
       "name": "claude-appsec",
-      "description": "Code security for Claude Code: OWASP Top 10:2025 rules the agent applies while it writes backend/API code in any language, /api-secure-report for a full security inventory of every HTTP route, /app-stride-report for a STRIDE threat model of the system, and /pr-appsec-review for a security review of a single pull request.",
+      "description": "Code security for Claude Code: OWASP Top 10:2025 rules the agent applies while it writes backend/API code in any language, /api-secure-report for a full security inventory of every HTTP route, /app-stride-report for a STRIDE threat model of the system, /pr-appsec-review for a security review of a single pull request, and /appsec-test for the failing test that proves one finding is real before it is fixed.",
       "source": "./",
-      "version": "2.1.0",
+      "version": "2.2.0",
       "category": "security",
-      "tags": ["security", "appsec", "owasp", "stride", "threat-modeling", "code-review", "backend", "api"],
+      "tags": ["security", "appsec", "owasp", "stride", "threat-modeling", "code-review", "backend", "api", "testing", "regression-testing"],
       "homepage": "https://github.com/joaovicdev/claude-appsec",
       "license": "MIT"
     }

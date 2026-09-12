@@ -1,13 +1,16 @@
 # claude-appsec
 
-**Code security for Claude Code.** Four skills: OWASP Top 10:2025 rules Claude
+**Code security for Claude Code.** Five skills: OWASP Top 10:2025 rules Claude
 applies **while it writes your backend code**, `/api-secure-report`, which audits
 every HTTP route in a project, `/app-stride-report`, which maps the system's trust
-boundaries and works STRIDE across them, and `/pr-appsec-review`, which asks both
-questions of a single pull request.
+boundaries and works STRIDE across them, `/pr-appsec-review`, which asks both
+questions of a single pull request, and `/appsec-test`, which turns one finding
+into the failing test that proves it is real.
 
-Markdown the agent reads, plus three read-only commands. Not a scanner — nothing
-executes your code, nothing leaves your machine.
+Markdown the agent reads, plus four commands. Three of them only read.
+`/appsec-test` is the exception: it writes a test into your suite and runs it,
+and it edits your code only after that test has gone red proving the finding it
+is about to fix. Still not a scanner, and nothing leaves your machine.
 
 <p align="center">
   <a href="examples/example-data-flow-diagram.png">
@@ -17,13 +20,13 @@ executes your code, nothing leaves your machine.
 </p>
 <p align="center"><sub>
   The data-flow diagram <code>/app-stride-report</code> writes into <code>STRIDE-REPORT.md</code>,
-  rendered from Mermaid — one of the three skills below. From a real run;
+  rendered from Mermaid — one of the five skills below. From a real run;
   click to enlarge.
 </sub></p>
 
 ## What you get
 
-One plugin, four skills. The first applies itself; the other three are commands.
+One plugin, five skills. The first applies itself; the other four are commands.
 
 | Skill | What it does | How you invoke it | What it writes |
 |---|---|---|---|
@@ -31,12 +34,15 @@ One plugin, four skills. The first applies itself; the other three are commands.
 | `api-secure-report` | Every HTTP route in the project, each marked clean or carrying findings: route → vulnerability → how an attacker reaches it → fix | `/api-secure-report [language] [path]` | `SECURITY-REPORT.md` at the project root |
 | `app-stride-report` | Decomposes the system into actors, processes, stores, flows and trust boundaries, draws the data-flow diagram, works STRIDE across every element | `/app-stride-report [language] [path]` | `STRIDE-REPORT.md` at the project root |
 | `pr-appsec-review` | Reviews one change in two halves: OWASP findings on the changed code, STRIDE threats on the boundaries it touches — each marked introduced, aggravated or pre-existing, with a computed verdict | `/pr-appsec-review [language] [target] [base]` | nothing. It prints, and leaves the branch untouched |
+| `appsec-test` | Takes one finding and writes the test that fails because it is real — the attack assertion red, a positive control green — runs it in your own framework, and only from red offers the minimal fix | `/appsec-test [language] [finding] [--fix\|--no-fix]` | a test file in your test directory — committed, not gitignored — and, if you say so, the fix |
 
 The two report commands take the same two optional arguments: `language`
 defaults to `pt-BR`, `path` to the repository root. `/pr-appsec-review` takes a
-target instead — a PR link, or a pair of branches. All three are read-only; the
-two reports overwrite their document on every run, and the PR review writes
-nothing at all.
+target instead — a PR link, or a pair of branches; `/appsec-test` takes the
+finding, in whatever form you have it. The first three are read-only: the two
+reports overwrite their document on every run, and the PR review writes nothing
+at all. `/appsec-test` is the one that writes, and what it writes first is a
+test.
 
 ## Install
 
@@ -67,10 +73,11 @@ git clone https://github.com/joaovicdev/claude-appsec
 ./claude-appsec/install.sh --project /path/to/your/repo
 ```
 
-This copies the four skills into `.claude/skills/`, both read-only agents into
+This copies the five skills into `.claude/skills/`, both read-only agents into
 `.claude/agents/`, imports the trigger in the repo's `CLAUDE.md`, and gitignores
-`SECURITY-REPORT.md` and `STRIDE-REPORT.md`. Commit the result — teammates get it
-on their next pull.
+`SECURITY-REPORT.md` and `STRIDE-REPORT.md` — never the tests `/appsec-test`
+writes, which exist to be committed. Commit the result — teammates get it on
+their next pull.
 
 > **The trigger is not optional.** *"Add an endpoint"* does not read as a
 > security request, so nothing would make Claude open the skill on its own.
@@ -178,7 +185,7 @@ OWASP id fails the build.
 
 ## `/pr-appsec-review` — one change, both questions
 
-The other two commands scan a repository; this one reviews a change. Give it a
+The two report commands scan a repository; this one reviews a change. Give it a
 pull request link, or a pair of branches — `main`, `dev`, `staging`, whatever
 yours merges into — and it resolves the merge-base, maps every hunk, and asks
 both questions in two halves that run side by side and never mix. A finding cites
@@ -210,6 +217,92 @@ review is printed, and `git status` afterwards is exactly what it was before.
 Either half runs alone if you installed only one body of material, and says so in
 the header rather than reporting an empty section.
 
+## `/appsec-test` — the finding, proved
+
+The other three commands produce findings and no evidence that any of them is
+real — a report lists them and cannot tell you which would actually reproduce.
+This one takes a single item — a finding number from `SECURITY-REPORT.md`, a
+`TM-<nn>` from the threat model, a ref like `A01.Q2`, a `file:line`, or the claim
+in prose — finds your test runner, and writes the test that **fails** because the
+finding is real. Only then, with the test red on screen, does it offer to fix it.
+**A fix without a red test is a guess with write permission.**
+
+Every generated test carries two assertions, and the second is what makes the
+first mean anything: the attack assertion, and a positive control proving the
+legitimate caller still succeeds down the same path. A test that goes red because
+the route 404s, the fixture is missing, or the request gets a 401 before it ever
+reaches the handler proves nothing. So there are three outcomes, not two:
+
+```
+RED      control passes, attack fails   the finding is real
+GREEN    both pass                      not reproducible here
+BROKEN   control fails                  the test never reached the code
+```
+
+RED is the one that opens the gate to a fix, and nothing else does — `--fix`
+answers the question in advance, it does not open the gate, and there is no
+`--force`:
+
+```
+you    /appsec-test 3
+
+claude … resolves finding 3 to a ref, a location and a claim, finds jest and
+       supertest, runs the suite once for a baseline, writes
+       test/orders.security.spec.ts, runs it:
+
+       RED · A01.Q2 · src/orders/orders.controller.ts:14
+         ✔ controle positivo — o dono lê o próprio pedido      200
+         ✘ ataque — o tenant B lê o pedido do tenant A         200, esperado 403
+         O achado é real: a requisição chegou ao handler, e o handler
+         respondeu errado. Baseline: 128 testes, 0 falhas.
+         Corrigir agora? [s/N]
+```
+
+GREEN is the outcome nothing else in this plugin can produce: a finding that does
+not reproduce, said out loud, with the test kept anyway as the regression that
+says so. Every GREEN names which of its three causes applies — the finding was
+wrong, the code was already fixed since the report was written, or the test never
+exercised the vulnerable path — because only the first two are false positives
+and the third is a bad test:
+
+```
+you    /appsec-test A01.Q2#7
+
+claude … same harness, same two assertions, different answer:
+
+       GREEN · A01.Q2 · src/orders/orders.controller.ts:14
+         ✔ controle positivo — o dono lê o próprio pedido      200
+         ✔ ataque — o tenant B lê o pedido do tenant A         403
+         Não reproduzível aqui. Causa: achado errado — o escopo já está no
+         predicado, em src/orders/orders.repository.ts:22. Nada é corrigido;
+         o teste fica no repositório como regressão.
+         Registrar em SECURITY-NOTES.md, sob ## Verified clean? [s/N]
+```
+
+The third outcome is what keeps the other two honest. When the positive control
+itself fails, the request never reached the handler at all, and the attack's red
+means nothing — so the run says so, and the harness gets fixed, never the code:
+
+```
+       BROKEN · A01.Q2 · src/orders/orders.controller.ts:14
+         ✘ controle positivo — o dono lê o próprio pedido      404
+         ✘ ataque — o tenant B lê o pedido do tenant A         404
+         O teste nunca alcançou o código. Prováveis causas: rota não montada
+         no módulo de teste, fixture ausente, 401 antes do handler.
+         Corrigir o harness, nunca o código. Nada é corrigido.
+```
+
+The three transcripts above are illustrative, not recorded runs — and unlike the
+two reports on this page, there is no example output to link to, because
+`examples/vulnerable-app/` is wrong on purpose and deliberately not runnable: it
+has no suite to go red. Point the command at a project of yours that has one.
+
+The test lands where your project already keeps its tests, in the framework and
+the style it already uses, one file per module rather than one per finding. And
+unlike the two reports, which are gitignored and overwritten on every run, it is
+committed. A report is the claim; the test is what still catches the defect after
+the report has been overwritten.
+
 ## Running the commands
 
 ```bash
@@ -224,6 +317,11 @@ the header rather than reporting an empty section.
 /pr-appsec-review                             # current branch vs the default base
 /pr-appsec-review feature/orders staging      # any pair of branches
 /pr-appsec-review pt-BR https://github.com/org/repo/pull/123
+
+/appsec-test                                  # triage the reports, then pick one
+/appsec-test 3                                # finding 3 of SECURITY-REPORT.md
+/appsec-test TM-07 --no-fix                   # prove the threat, write no fix
+/appsec-test 'GET /orders/:id returns another tenant order'
 ```
 
 The two reports print to the terminal and write their document to the project
@@ -232,6 +330,9 @@ root, overwriting the previous one. Run them in either order — if
 threats that report already confirmed in code, citing it by finding number.
 `/pr-appsec-review` only prints, and reads both documents if they are there: an
 item either one already records is marked pre-existing, cited by its number.
+`/appsec-test` reads them too, and resolves `3` or `TM-07` against them — but it
+needs neither: a ref, a `file:line` or the claim in prose is enough, which is
+what lets it prove an item `/pr-appsec-review` just printed and never wrote down.
 
 ## A threat is not a finding
 
@@ -241,14 +342,31 @@ including the mitigations that are simply absent — and an absent mitigation ha
 no line to point at. So instead of a location it owes you an account of where it
 searched. A threat with neither is discarded at consolidation, not published.
 
+That missing line is not what decides whether the thing can be proved, and
+`/appsec-test` is where the two stop contradicting each other: testability comes
+from whether the security property is observable at a boundary the project can
+drive, not from whether the item carries a `file:line`. A login route with no
+rate limit — `D.Q1` as a threat, `A07.Q1` as a finding — is proved by driving N
+requests and asserting that none is refused, with nothing to point at but the
+absence itself. An unpinned lockfile (`A03.Q2`) has an exact line and can never
+be proved this way, because nothing about it is observable at runtime. A location
+is what makes an item reportable; a boundary you can drive is what makes it
+provable.
+
 ## Good to know
 
 - **No network.** Plain Markdown, read locally — nothing uploaded, no telemetry.
-- **Nothing is modified.** No command has `Edit`, and neither `security-auditor`
-  nor `threat-modeler` has `Write` or `Edit` — enforced by the agent definitions,
-  not requested in a prompt. The only files written are the two reports;
-  `/pr-appsec-review` has no `Write` at all. The one command that can touch a
-  repository at all is a `git fetch` of a pull request head, and it asks first.
+- **One command modifies, and only from red.** Three of the four have no `Edit`:
+  the only documents they write are the two reports, `/pr-appsec-review` has no
+  `Write` at all, and the most either can do to your repository is a `git fetch`
+  of a pull request head, which asks first. Both subagents are still read-only —
+  neither `security-auditor` nor `threat-modeler` has `Write` or `Edit`, enforced
+  by the agent definitions rather than requested in a prompt. `/appsec-test` is
+  the exception and says so in its own first paragraph: it has `Write` and `Edit`
+  — the first `Edit` in this repository — it runs your test suite, and it changes
+  code under test only after the test it wrote has gone red, and only when you
+  answer yes. It dispatches no subagent, because both of them are defined never
+  to run project code.
 - **Both documents are sensitive.** They quote internal paths and spell out how
   to attack them; the threat model maps the surface nobody has tried yet. Keep
   them out of git (`install.sh --project` does; otherwise the skills offer to).
@@ -277,6 +395,9 @@ skills/
                       its own ids, its own material — cites nothing above it
   pr-appsec-review/   SKILL.md + references/ — consumes both bodies, owns neither.
                       Two halves, two vocabularies, never in the same item
+  appsec-test/        SKILL.md + references/ — the one that writes and runs code.
+                      Proves a finding red before any fix is offered; the only
+                      skill with Edit, and its test is committed, not gitignored
 agents/               security-auditor, threat-modeler — the read-only workers the two
                       commands fan out to. tools: Read, Glob, Grep, Bash. No Write, no Edit
 examples/             vulnerable-app/ (a NestJS app that is wrong on purpose), the two

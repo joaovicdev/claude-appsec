@@ -117,6 +117,69 @@ both are load-bearing:
   agent rather than a prompt on the existing one. Do not "fix" this by adding a
   location requirement.
 
+## The one skill that writes and runs
+
+`skills/appsec-test/` is the second consumer of both bodies, and it is held to
+the same rule as the first. A *resolved item* — the triple of ref + location +
+claim it produces before anything is written — cites `A01.Q2` or it cites
+`E.Q3`, never the pair, and the header of the test it generates carries only
+that item's own vocabulary. Two taxonomies, never inside one item. It owns
+neither body: if a rule seems missing, add a question to the body it belongs
+to, not a paragraph to the skill.
+
+**It is the only thing here that writes into the project under review, and the
+only one that runs that project's code.** The other three commands write their
+own report and nothing else — none of them has `Edit` — and both agents have
+neither `Write` nor `Edit`, which is why neither is dispatched from this skill:
+`security-auditor` and `threat-modeler` forbid running project code in their own
+definitions, and an agent defined never to run anything would either break that
+definition or quietly skip the suite. All of it is enforced in frontmatter,
+where a drifting prompt cannot reach it. A new skill starts read-only and stays
+read-only unless it has the reason this one has — a failing test on screen,
+proving the thing it is about to change. Anything less is a guess with write
+permission.
+
+**The generated test is committed.** The two reports are gitignored and
+overwritten on the next run; the test is the one output meant to outlive the
+document, which is why `install.sh`'s gitignore block gains no line for it and
+CI asserts `.gitignore` has not grown. An ignore rule there would delete the
+only reason the skill exists.
+
+**Test-harness knowledge lives in `skills/appsec-test/references/test-design.md`
+and nowhere else.** Runner names — `jest`, `supertest`, Pest, PHPUnit, JUnit,
+`MockMvc` — appear in that one file and in no other file under `skills/`.
+Moving any of them into `skills/secure-coding/stacks/` breaks two rules already
+written above: the 4–8-lines-per-item budget, which has no room for a harness
+recipe, and the test in `## Changing the core` — *if a sentence would confuse
+someone reading it in a Go or Python project, it is in the wrong file*. The
+split is deliberate. The core names the obligation — `A06.Q9`, *is there a test
+that asserts the limit or the forbidden transition* — and the consumer names the
+runner that satisfies it. Collapse the two and the rules stop being portable to
+the stack nobody has written yet.
+
+Checks 17–19 hold the skill to the promises the other consumers make: every
+manifest row resolves to a file that exists, every file under its `references/`
+has a manifest row loading it, and every threat id it cites is a real threat
+question. Its OWASP ids come free — check 4's glob is `skills/*/references/`,
+and has covered them since the first consumer.
+
+**A green run of `./scripts/check-ids.sh` is not proof that anything was
+checked.** The script holds skill paths in constants — `TM=`, `PR=`, and now
+`AT=` — and pointed at a directory that does not exist, several checks print `✔`
+having examined nothing: a `while read` loop fed by a `grep` that matched no
+file gets empty input and never runs its body, and the `|| true` that keeps
+`set -uo pipefail` from aborting swallows the error that would have said so.
+Rename a skill directory, move a reference, edit a constant, and the checks
+guarding it go quietly green. So after any rename or path change, prove they
+still bite: break a file on purpose and watch the build go red before trusting
+the tick it prints afterwards. Three breaks that are verified to bite, all in
+`skills/appsec-test/references/` — `A99.Q9` fails check 4, and `E.Q99` and
+`Z.Q9` both fail check 19, whose glob is `[A-Z]\.Q[0-9]+` rather than the six
+letters, so an invented category is caught as loudly as an invented number.
+The rename is the trap in miniature: point `AT=` at a directory that is not
+there and checks 17 and 19 both print `✔` having read nothing at all. A check
+nobody has watched fail is a check nobody should believe.
+
 ## Conventions worth preserving
 
 - **IDs are stable and never renumbered.** A future edition goes in
