@@ -8,6 +8,121 @@ Versions follow [SemVer](https://semver.org/). For this repository that means:
   Additive: a consumer written against the previous minor keeps working.
 - **Patch** — wording, grep signals, fixes that change no id.
 
+## [2.2.0]
+
+A fourth command, and the first one that runs the project instead of only
+reading it: `/appsec-test` takes a single finding and produces the test that
+fails because that finding is real. The material has been asking for exactly
+this for four releases without ever delivering it — `A01` rule 2 requires a
+route's exemptions to be "enumerable by a test", `A01.Q3` asks whether the
+exemption is listed in one, `A02` says to put a test on the anchored pattern,
+`A06` step 4 says to write the test that proves the abuse case, `A06.Q9` asks
+whether a test asserts the limit or the forbidden transition, and `NEST.4` and
+`SPR.1` each name the obligation outright. Every one of those is an instruction
+to the developer that nothing in the plugin fulfilled. This does.
+
+The pipeline is one line with three endings: resolve the finding, find the
+harness and take **the baseline**, triage whether the property is provable here
+at all, write the test, run it — and only then, with the test red on screen,
+ask the one question the skill asks. **A fix without a red test is a guess with
+write permission**, so the fix is last and gated, never offered up front.
+
+### Added
+
+- **`appsec-test` skill and `/appsec-test`.** Takes the finding in whatever form
+  the developer has it — a finding number from `SECURITY-REPORT.md`, a `TM-<nn>`
+  from `STRIDE-REPORT.md`, a ref (`A01.Q2`, `NEST.3`, `E.Q3`), a ref pinned to a
+  number (`A01.Q2#3`), a `file:line`, the claim in prose, or nothing at all —
+  and resolves it to one **resolved item**: taxonomy, ref, location, claim,
+  echoed back before a line is written. `#3` is a handle, never an identity:
+  `api-secure-report` re-derives its numbering every run, so finding 3 today is
+  a different defect tomorrow. Working with no report at all is the normal case
+  rather than a fallback, because `/pr-appsec-review` writes no file to work
+  from.
+- **Three outcomes, and the positive control that makes them mean anything.**
+  `RED` is the positive control passing and the attack assertion failing — the
+  finding is real. `GREEN` is both passing — not reproducible here. `BROKEN` is
+  the positive control failing — the test never reached the code. Every
+  generated test carries both assertions, always: the attack, and the control
+  asserting that the legitimate caller still succeeds down the same path.
+  Without the control, red is indistinguishable from a route that 404s, a
+  missing fixture or a 401 that never reached the handler, and `BROKEN`
+  reported as `RED` is a fix applied to code nothing ran.
+- **`GREEN` is the outcome nothing else in the plugin can produce.** The other
+  three commands generate findings; this one is the only thing that can retire
+  them, which is free calibration of the material against reality. It splits
+  three ways and the run says which: the finding was wrong, the code was fixed
+  since the report was written, or the test does not exercise the vulnerable
+  path. Only the first two are false positives — the third is a bad test and
+  gets reworked, not counted. On the first, the run offers a row in
+  `SECURITY-NOTES.md` under `## Verified clean`, offered and never silent, so
+  the next `/api-secure-report` reports it as known instead of re-litigating the
+  same false positive every run.
+- **The gate.** The fix runs from `RED` and from nowhere else. `GREEN` and
+  `BROKEN` never reach it, `--fix` included, and there is no `--force` — for an
+  unproven finding the existing path is already correct, which is to load
+  `secure-coding` and fix it by hand. Verification is two runs: the security
+  test must flip green, and the suite is compared against **the baseline** taken
+  at harness discovery, before anything was written. Without that baseline, "the
+  fix broke three tests" is unknowable — they may have been red all along. The
+  test is never edited to make it pass; a test weakened until it is green is the
+  vulnerability re-shipped with a green badge.
+- **Not everything is provable, and the run says so instead of writing
+  theatre.** Testability comes from whether the security property is observable
+  at a boundary the project can drive, not from whether the item has a
+  `file:line`: an absent rate limit is provable with no line to cite, a lockfile
+  pin under `A03` never is however exact its line, and `A06.Q9` is *satisfied*
+  by this skill rather than proved by it, since the existence of a test is not a
+  runtime property. A test written to pass because there was nothing to assert
+  is worse than no test — it is committed, and it reads as evidence.
+- **The test is committed**, in deliberate contrast to the two reports, which
+  are gitignored and overwritten on every run. `install.sh` adds no ignore line
+  for it and CI still asserts `.gitignore` has not grown. A document is evidence
+  until the next run replaces it; a test in the suite is evidence until somebody
+  deletes it on purpose.
+- **It consumes both bodies of material and owns neither**, the way
+  `/pr-appsec-review` does. A resolved item is an OWASP finding or a STRIDE
+  threat and never both: it cites `A01.Q2` or it cites `E.Q3`, and the generated
+  test's header block carries only its own vocabulary. A missing root disables
+  that input family loudly — both missing is a hard stop, because a test written
+  from a remembered rule proves whatever it was written to prove, and then it is
+  committed.
+- **Harness knowledge lives in the new skill's references, not in
+  `secure-coding/stacks/`.** `jest` and `supertest` over
+  `Test.createTestingModule`; Pest or PHPUnit with `RefreshDatabase` and
+  `actingAs` in `tests/Feature/`; JUnit 5 with `@SpringBootTest` and `MockMvc`
+  in `src/test/java/`. Keeping it here is what lets the core stay
+  language-agnostic and `CONTRIBUTING.md`'s rule — name the obligation, never
+  the runner — stand where it was written. No runner detected is a full stop:
+  the skill names what the project would have to install and writes nothing,
+  because scaffolding a test framework is a supply-chain decision taken as a
+  side effect of a security question.
+- **Three checks in `scripts/check-ids.sh`** (17–19) holding the new skill's
+  references to the same promises the others make: manifest rows resolve, no
+  orphans, and every threat id it cites is real. Its OWASP ids were already
+  covered by check 4, whose glob is `skills/*/references/`.
+
+### Changed
+
+- **This is the first skill with `Edit`, and the first that runs your project's
+  code.** It is stated here rather than left to be discovered in a frontmatter:
+  `/appsec-test` carries `Write` and `Edit`, and its `Bash` drives the project's
+  own test suite. Two promises in `README.md` stop being true and are rewritten
+  instead of left standing — *"three read-only commands"* and *"**Nothing is
+  modified.** No command has `Edit`"*. The boundary is now explicit rather than
+  absolute: three commands read, one writes, and it writes only after it has
+  proved the thing it is fixing. *Nothing leaves your machine* stays true and
+  stays in.
+- **Both agents stay read-only, and neither is dispatched.** `/appsec-test` has
+  no `Agent` in its frontmatter at all. `security-auditor` and `threat-modeler`
+  each forbid running project code in their own definitions, and an agent
+  defined never to run anything would either break that definition or quietly
+  skip the suite — and a suite that silently did not run reports exactly what a
+  passing one does.
+- **`install.sh` installs the fifth skill.** No `.gitignore` line is added for
+  it, because the file it produces is meant to be committed. CI asserts both
+  halves of that: the directory lands, and the ignore file does not grow.
+
 ## [2.1.0]
 
 A third command, and the first one that consumes both bodies of material at once:
@@ -166,6 +281,7 @@ making it installable by someone other than the author.
   about in the README. `install.sh --project` adds it up front.
 - **README** is written for someone adopting the skill rather than for the author.
 
+[2.2.0]: https://github.com/joaovicdev/claude-appsec/releases/tag/v2.2.0
 [2.1.0]: https://github.com/joaovicdev/claude-appsec/releases/tag/v2.1.0
 [2.0.0]: https://github.com/joaovicdev/claude-appsec/releases/tag/v2.0.0
 [1.0.0]: https://github.com/joaovicdev/claude-appsec/releases/tag/v1.0.0

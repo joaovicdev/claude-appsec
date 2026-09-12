@@ -20,10 +20,10 @@ This skill is a **consumer** of both. It restates neither — it reads their fil
 and cites their stable ids. If a rule seems missing, the fix is to add a question
 there, not to invent one here.
 
-**Nothing is written. Not even the review.** The other two commands write a
-document; this one has no `Write` at all, and prints to the terminal. A review
-that leaves a file behind in someone's branch is a review that shows up in their
-next `git status`.
+**Nothing is written. Not even the review.** The other three commands leave a
+file behind — the two reports, and the test `/appsec-test` commits; this one has
+no `Write` at all, and prints to the terminal. A review that leaves a file
+behind in someone's branch is a review that shows up in their next `git status`.
 
 ## The two halves
 

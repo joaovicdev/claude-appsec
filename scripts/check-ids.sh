@@ -48,6 +48,8 @@ done < <(grep -hoE 'stacks/[a-z-]+\.md \([A-Z]+\.[0-9]+(, ?[A-Z]+\.[0-9]+)*\)' "
 [ "$badref" = 0 ] && pass "every → stacks/x.md (ID) points at an id that exists"
 
 # 4 — every ref a consumer enumerates is a real review question --------------
+# Both a SKILL.md and a references/ file may cite an id, and an unguarded
+# SKILL.md was how an invented A99.Q9 once shipped green.
 printf '%s\n' "${bold}consumer refs exist as review questions${off}"
 badq=0
 while read -r q; do
@@ -55,7 +57,7 @@ while read -r q; do
   f=$(ls "$CORE"/owasp/"$cat"-*.md 2>/dev/null | head -1)
   [ -n "$f" ] || { fail "a consumer cites $q but there is no $cat file"; badq=1; continue; }
   grep -qF "**$q**" "$f" || { fail "a consumer cites $q, which is not a review question in $(basename "$f")"; badq=1; }
-done < <(grep -rhoE '\bA[0-9]{2}\.Q[0-9]+\b' "$REPO"/skills/*/references/ | sort -u)
+done < <(grep -rhoE '\bA[0-9]{2}\.Q[0-9]+\b' "$REPO"/skills/*/SKILL.md "$REPO"/skills/*/references/ | sort -u)
 [ "$badq" = 0 ] && pass "every id enumerated by a consumer is a real review question"
 
 # 5 — review questions are numbered without gaps -----------------------------
@@ -131,6 +133,11 @@ done
 [ "$torphans" = 0 ] && pass "every stride and reference file has a manifest row"
 
 # 11 — every ref the app-stride-report enumerates is a real threat question -------
+# Checks 11, 16 and 19 all extract threat ids with [A-Z], never [STRIDE]. The
+# narrow class matches only the six valid letters, so an invented category — a
+# Z.Q9 — is never extracted and the check passes while checking nothing. With
+# [A-Z] the id is extracted, no Z-*.md is found, and the build goes red. Do not
+# narrow these back.
 printf '%s\n' "${bold}app-stride-report refs exist as threat questions${off}"
 badt=0
 while read -r q; do
@@ -138,7 +145,7 @@ while read -r q; do
   f=$(ls "$TM"/stride/"$cat"-*.md 2>/dev/null | head -1)
   [ -n "$f" ] || { fail "app-stride-report cites $q but there is no $cat file"; badt=1; continue; }
   grep -qF "**$q**" "$f" || { fail "app-stride-report cites $q, which is not a threat question in $(basename "$f")"; badt=1; }
-done < <(grep -rhoE '\b[STRIDE]\.Q[0-9]+\b' "$TM/SKILL.md" "$TM"/references/ | sort -u)
+done < <(grep -rhoE '\b[A-Z]\.Q[0-9]+\b' "$TM/SKILL.md" "$TM"/references/ | sort -u)
 [ "$badt" = 0 ] && pass "every id enumerated in the app-stride-report references is a real threat question"
 
 # 12 — threat questions are numbered without gaps ----------------------------
@@ -198,8 +205,65 @@ while read -r q; do
   f=$(ls "$TM"/stride/"$cat"-*.md 2>/dev/null | head -1)
   [ -n "$f" ] || { fail "pr-appsec-review cites $q but there is no $cat file"; badp=1; continue; }
   grep -qF "**$q**" "$f" || { fail "pr-appsec-review cites $q, which is not a threat question in $(basename "$f")"; badp=1; }
-done < <(grep -rhoE '\b[STRIDE]\.Q[0-9]+\b' "$PR/SKILL.md" "$PR"/references/ | sort -u)
+done < <(grep -rhoE '\b[A-Z]\.Q[0-9]+\b' "$PR/SKILL.md" "$PR"/references/ | sort -u)
 [ "$badp" = 0 ] && pass "every threat id enumerated by pr-appsec-review is a real threat question"
+
+# The appsec-test skill consumes both bodies of material and owns neither. It is
+# the one skill that writes and runs: it puts a test file in the project and
+# drives the project's own suite. Checks 17-19 hold its references to the same
+# promises the others make. Its OWASP ids are covered by check 4 and its stack
+# ids by check 20, both of which read every consumer's SKILL.md as well as its
+# references/ — this skill cites ids in both places.
+
+AT="$REPO/skills/appsec-test"
+
+# 17 — every appsec-test manifest row points at a file that exists -----------
+printf '%s\n' "${bold}appsec-test manifest rows resolve${off}"
+amissing=0
+while read -r f; do
+  [ -f "$AT/$f" ] || { fail "appsec-test manifest cites $f, which does not exist"; amissing=1; }
+done < <(grep -oE '`references/[A-Za-z0-9._-]+\.md`' "$AT/SKILL.md" | tr -d '`' | sort -u)
+[ "$amissing" = 0 ] && pass "every file named in the appsec-test manifest exists"
+
+# 18 — every appsec-test reference is in the manifest ------------------------
+printf '%s\n' "${bold}no orphan appsec-test files${off}"
+aorphans=0
+for f in "$AT"/references/*.md; do
+  rel="${f#"$AT"/}"
+  grep -qF "\`$rel\`" "$AT/SKILL.md" || { fail "$rel exists but no manifest row loads it"; aorphans=1; }
+done
+[ "$aorphans" = 0 ] && pass "every appsec-test reference file has a manifest row"
+
+# 19 — the threat ids it cites are real threat questions ---------------------
+# check 4 already did this for the OWASP half; this is the other half.
+printf '%s\n' "${bold}appsec-test threat refs exist as threat questions${off}"
+bada=0
+while read -r q; do
+  cat="${q%%.*}"
+  f=$(ls "$TM"/stride/"$cat"-*.md 2>/dev/null | head -1)
+  [ -n "$f" ] || { fail "appsec-test cites $q but there is no $cat file"; bada=1; continue; }
+  grep -qF "**$q**" "$f" || { fail "appsec-test cites $q, which is not a threat question in $(basename "$f")"; bada=1; }
+done < <(grep -rhoE '\b[A-Z]\.Q[0-9]+\b' "$AT/SKILL.md" "$AT"/references/ | sort -u)
+[ "$bada" = 0 ] && pass "every threat id enumerated by appsec-test is a real threat question"
+
+# 20 — every stack id a consumer cites is a real stack rule ------------------
+# Check 3 validates the → stacks/x.md (ID) pointers written inside the core
+# files. Nothing validated the same ids when a consumer cites them, so a
+# NEST.99 in a skill shipped green. This is that half.
+printf '%s\n' "${bold}consumer stack refs exist as stack rules${off}"
+bads=0
+while read -r id; do
+  case "${id%%.*}" in
+    NEST) sf='nestjs.md' ;;
+    LAR)  sf='laravel.md' ;;
+    SPR)  sf='spring-boot.md' ;;
+    *)    fail "a consumer cites $id, whose prefix maps to no stack file"; bads=1; continue ;;
+  esac
+  [ -f "$CORE/stacks/$sf" ] || { fail "a consumer cites $id but $sf does not exist"; bads=1; continue; }
+  grep -qE "^#+ $id[[:space:]]|^- \*\*$id\*\*|\*\*$id\*\*" "$CORE/stacks/$sf" \
+    || { fail "a consumer cites $id, which is not a rule in $sf"; bads=1; }
+done < <(grep -rhoE '\b(NEST|LAR|SPR)\.[0-9]+\b' "$REPO"/skills/*/SKILL.md "$REPO"/skills/*/references/ | sort -u)
+[ "$bads" = 0 ] && pass "every stack id enumerated by a consumer is a real stack rule"
 
 printf '\n'
 if [ "$fails" -gt 0 ]; then
