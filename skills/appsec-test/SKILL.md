@@ -15,7 +15,7 @@ reads their files and cites their stable ids (`A01.Q2`, `NEST.3`, `E.Q3`). If a
 rule seems missing, the fix is to add a question there, not to invent one here.
 
 **This skill writes, and it runs the project's code.** `Edit` is new to this
-repository — the other three commands have none — and `Bash` here executes the
+repository — the other four commands have none — and `Bash` here executes the
 project's test suite rather than only reading files. Both are the point: a
 finding nobody ran is a claim. Nothing leaves the machine.
 
@@ -110,6 +110,12 @@ Then, still in Step 1:
    - **`SECURITY-NOTES.md`** — an item recorded there as an accepted risk is not
      proved; say so and stop. `## Verified clean` is the table Step 6 offers to
      append a row to — offered, never written silently.
+   - **`.claude/appsec-profile.md`** — this project's architecture as the developer
+     states it. Here it is read for two things the other commands do not use it
+     for: `## Test harness`, which is the largest single saving the file buys any
+     command, and `## Authentication`, which is how an authenticated request is
+     built. A claim with no `Does not apply to:` line, or one under `## Stale`,
+     applies to nothing.
 
 ## Step 2 — Resolve the finding
 
@@ -129,9 +135,17 @@ will go red convincingly.
 
 ## Step 3 — Find the harness and take a baseline
 
-Follow `references/test-design.md` for the stack detected in Step 1 — runner, how
-the app is booted in a test, how data is seeded, where tests live. **No runner
-detected is a full stop**: name what the project would have to install and why,
+If the profile carries a `## Test harness` claim, that is the starting point:
+confirm it with one grep instead of running the whole discovery recipe. If it
+contradicts what you find, the profile no longer describes this project — follow
+the code, and say so. Four facts live in that claim — the command that runs the
+suite, where tests live, how the app is booted, and how an authenticated request
+is built — and re-deriving them every run is the largest avoidable cost in this
+command.
+
+Otherwise follow `references/test-design.md` for the stack detected in Step 1 —
+runner, how the app is booted in a test, how data is seeded, where tests live.
+**No runner detected is a full stop**: name what the project would have to install and why,
 and write nothing. Scaffolding a test framework into someone's project as a side
 effect of a security question is a larger change than the finding.
 
@@ -152,6 +166,15 @@ When the item is not provable here, name the id, say why, and stop — the exist
 path is already right: load `secure-coding` and fix it by hand. A test written to
 pass because there was nothing to assert is worse than no test, because it is
 committed and it reads as evidence.
+
+**A profile claim is never a reason not to write the test.** The other commands
+read `.claude/appsec-profile.md` to stop asking a question; this one reads it to
+find out whether the answer was ever true. An item that a claim would have removed
+from a report is the most valuable test in the project, because it is the only
+thing here that can turn a claim from an assertion into a fact — and a claim is
+otherwise never checked again after the day it was written. So a claim explaining
+the item changes nothing about triage; note the claim id in the test header and
+carry on.
 
 ## Step 5 — Write the test
 

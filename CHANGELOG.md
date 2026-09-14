@@ -8,6 +8,79 @@ Versions follow [SemVer](https://semver.org/). For this repository that means:
   Additive: a consumer written against the previous minor keeps working.
 - **Patch** — wording, grep signals, fixes that change no id.
 
+## [2.3.0]
+
+The commands stop re-deriving the architecture on every run, and start being told
+it once.
+
+The biggest generator of false positives here was never a missing rule — it was
+that an agent auditing a handler could not see the global guard covering it, or the
+middleware that puts the tenant predicate into every query. It re-derived that
+architecture from scratch on every run, paid tokens for it, and got it wrong in the
+same way every time. `/appsec-profile` writes it down once, as claims with an
+evidence anchor each, and the other five skills read it before they look at
+anything.
+
+Three things worth being blunt about, because they are trade-offs rather than
+features. **This file is a suppression mechanism**: a claim removes the finding it
+explains from the report body entirely, so a claim that is wrong produces no
+finding at all rather than a wrong one. It has no review ceremony — no status to
+tick, no question at generation time — because it has the review this repository
+already had: the file is committed, so a claim arrives as a diff, and deleting a
+line restores the question. **`Does not apply to:` is mandatory and is the only
+safety property**, which is why a run never writes `none` into it and why a claim
+missing that line suppresses nothing. And **removal is total in the body**, with
+one accounting line in `## Limites` naming the claim ids responsible — a deliberate
+trade, stated here rather than discovered later by someone wondering where a
+finding went.
+
+Minor, not major: no stable id is removed or redefined, the install layout does not
+break, and every command behaves exactly as it did in 2.2.0 when no profile exists.
+
+### Added
+
+- **`/appsec-profile`** — `skills/appsec-profile/`. Writes
+  `.claude/appsec-profile.md`: the module map, the trust-boundary names, where the
+  guard is, how a query is scoped and where it is not, what is public by
+  declaration, and where validation, error handling, configuration and the test
+  harness live. Non-interactive, so it runs in CI; `--check` re-greps every anchor,
+  writes nothing, and exits non-zero on drift. It has no `Agent` — discovery is a
+  bounded grep-first probe list, because fan-out would cost the two things the file
+  exists to provide, a cheap run and the same answer twice. It has no `Edit`: a
+  regeneration is read-old → merge → write-whole.
+- **The claim ids `P1`, `P2`, …** — the profile's own, taxonomy-free, never
+  renumbered and never reused. The high-water mark lives in a ledger comment on the
+  file's last line. **A deletion is an instruction**: a claim the developer removed
+  is not re-added on the next run.
+- **`## Not claimed`** — the half of the profile with no false-negative risk at
+  all. A negative claim cannot silence anything; *there is no global guard* turns
+  every unguarded handler into a real finding instead of an argument.
+- **Checks 21-24 in `scripts/check-ids.sh`.** 21 and 22 hold the new skill to the
+  manifest promises the other consumers make (22 also covers `templates/`, which
+  the existing pair does not). 23 is the mirror of check 13 and the one check
+  nothing else needed: checks 4 and 20 *validate* an id and would pass a real
+  `A01.Q2` sitting in the new skill. 24 enforces, for the first time, the rule
+  `CONTRIBUTING.md` has always stated about where test-runner names may appear.
+- **A guard on the skill path constants.** `CONTRIBUTING.md` documented the trap
+  where a constant pointing nowhere makes its checks print a tick having read
+  nothing. It is now a failure instead of a paragraph warning about one.
+
+### Changed
+
+- All five existing skills read `.claude/appsec-profile.md` in Step 1, and the
+  three that fan out paste only the sections a given agent's slice needs. **A
+  subagent never stays silent**: it emits the block it would have emitted with a
+  `profile: P<n>` field, and consolidation removes and counts. An agent suppressing
+  on its own would make the accounting line impossible to produce.
+- `/app-stride-report` names a boundary from the profile verbatim where the profile
+  already names it, so two runs are comparable rather than merely both correct.
+- `/appsec-test` reads the profile in the opposite direction from everyone else:
+  a claim is never a reason not to write the test, because this is the only command
+  that can turn a claim from an assertion into a fact.
+- `/pr-appsec-review`'s verdict line states how many items a profile removed. A
+  **Bloqueia o merge** that quietly became **Nada bloqueante** because of a line
+  someone wrote six months ago is the failure this sentence exists to prevent.
+
 ## [2.2.0]
 
 A fourth command, and the first one that runs the project instead of only

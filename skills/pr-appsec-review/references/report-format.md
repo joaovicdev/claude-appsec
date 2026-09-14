@@ -23,6 +23,7 @@ hunk: @@ -28,6 +28,12 @@                  # required unless origin is pre-existi
 origin: introduced | aggravated | pre-existing
 ref: A01.Q2                               # an id that exists in the secure-coding files
 severity: critical | high | medium | low
+profile: P7 | —                           # a profile claim that explains this, if any
 what: <one or two sentences — the defect, stated plainly>
 exploit: <concrete steps an attacker takes, with the request that does it>
 fix: <what to change, in this project's idiom, pointing at the correct pattern>
@@ -43,6 +44,7 @@ status: unmitigated | partial | mitigated | n/a
 evidence: src/orders/orders.controller.ts:31
 impact: high | medium | low
 likelihood: high | medium | low
+profile: P7 | —                           # a profile claim that explains this, if any
 threat: <what an attacker does, one or two sentences>
 attack: <the concrete path — the request, the sequence, the precondition>
 mitigation: <what closes it, in this project's own idiom>
@@ -158,6 +160,13 @@ to say so on the same line.
 A half that did not run never produces **Nada bloqueante** for its own section.
 It produces `✘ não executada`, and the verdict says the review is partial.
 
+Um item removido por uma claim do perfil não é um achado e não entra em nenhuma
+linha do veredito. **Quando houve remoção, a linha do veredito diz quantos itens
+foram removidos e por quais claims.** Sem isso, um **Bloqueia o merge** pode virar
+**Nada bloqueante** por causa de uma linha que alguém escreveu num perfil seis
+meses atrás — um veredito que depende das claims de arquitetura do próprio time
+tem que dizer isso na mesma linha em que se apresenta.
+
 ## 4. Output template
 
 Below is the `pt-BR` rendering, which is the default. For another language,
@@ -262,11 +271,16 @@ Toda suposição feita para revisar esta mudança. Uma premissa errada invalida 
 itens que dependem dela — por isso ficam visíveis, e não implícitas.
 
 - <base inferida, ambiente de deploy, o que existe fora do repositório>
+- Perfil `.claude/appsec-profile.md` (<YYYY-MM-DD>): claims usadas — <P3, P4, P7>.
+  Uma premissa errada invalida os itens que dependeram dela.
 
 ## Limites desta revisão
 
 - <o que não foi lido, e por quê — binário, arquivo gerado, head não baixado>
 - Arquivos alterados efetivamente lidos: <n> de <n>.
+- Perfil de arquitetura: `.claude/appsec-profile.md`, gerado em <YYYY-MM-DD> no
+  commit `<sha>` — <n> achados e <n> ameaças removidos por claims do perfil
+  (<P7, P9>), contados por metade. Sem perfil: "nenhum perfil — nada foi removido".
 - <qual metade não rodou, e por quê — nunca omitir>
 - Ausência de achado não é prova de ausência de vulnerabilidade. As regras OWASP
   são as do skill `secure-coding` e as ameaças são as do `app-stride-report`; um
@@ -278,3 +292,7 @@ itens que dependem dela — por isso ficam visíveis, e não implícitas.
 they state the base that was used, the coverage numbers, which halves ran, and
 the last line. A review that hides what it did not look at is worse than no
 review — a reviewer trusts it and stops looking.
+
+The profile lines carry the **ids**, never the items. An item removed by a claim
+appears nowhere else in this review, so those two lines and the verdict line are
+the only accounting that exists.

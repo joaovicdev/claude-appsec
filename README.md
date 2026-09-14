@@ -1,13 +1,15 @@
 # claude-appsec
 
-**Code security for Claude Code.** Five skills: OWASP Top 10:2025 rules Claude
-applies **while it writes your backend code**, `/api-secure-report`, which audits
-every HTTP route in a project, `/app-stride-report`, which maps the system's trust
-boundaries and works STRIDE across them, `/pr-appsec-review`, which asks both
-questions of a single pull request, and `/appsec-test`, which turns one finding
-into the failing test that proves it is real.
+**Code security for Claude Code.** Six skills: OWASP Top 10:2025 rules Claude
+applies **while it writes your backend code**, `/appsec-profile`, which records
+your project's own architecture once so the rest stop reporting controls you
+already have, `/api-secure-report`, which audits every HTTP route in a project,
+`/app-stride-report`, which maps the system's trust boundaries and works STRIDE
+across them, `/pr-appsec-review`, which asks both questions of a single pull
+request, and `/appsec-test`, which turns one finding into the failing test that
+proves it is real.
 
-Markdown the agent reads, plus four commands. Three of them only read.
+Markdown the agent reads, plus five commands. Four of them only read.
 `/appsec-test` is the exception: it writes a test into your suite and runs it,
 and it edits your code only after that test has gone red proving the finding it
 is about to fix. Still not a scanner, and nothing leaves your machine.
@@ -20,17 +22,18 @@ is about to fix. Still not a scanner, and nothing leaves your machine.
 </p>
 <p align="center"><sub>
   The data-flow diagram <code>/app-stride-report</code> writes into <code>STRIDE-REPORT.md</code>,
-  rendered from Mermaid — one of the five skills below. From a real run;
+  rendered from Mermaid — one of the six skills below. From a real run;
   click to enlarge.
 </sub></p>
 
 ## What you get
 
-One plugin, five skills. The first applies itself; the other four are commands.
+One plugin, six skills. The first applies itself; the other five are commands.
 
 | Skill | What it does | How you invoke it | What it writes |
 |---|---|---|---|
 | `secure-coding` | OWASP Top 10:2025 rules Claude reads *before* it writes a route, guard, query, auth flow, config or dependency — then flags what it just wrote, citing the rule id | nothing to run — the trigger in your `CLAUDE.md` loads it | nothing. Inline flags, while you work |
+| `appsec-profile` | Records your project's own architecture once — the module map, the boundary names, where the guard is, how a query gets scoped and where it doesn't, what's public on purpose, where the test harness is — as claims the other five read instead of re-deriving | `/appsec-profile [language] [path] [--check]` | `.claude/appsec-profile.md` — committed, not gitignored |
 | `api-secure-report` | Every HTTP route in the project, each marked clean or carrying findings: route → vulnerability → how an attacker reaches it → fix | `/api-secure-report [language] [path]` | `SECURITY-REPORT.md` at the project root |
 | `app-stride-report` | Decomposes the system into actors, processes, stores, flows and trust boundaries, draws the data-flow diagram, works STRIDE across every element | `/app-stride-report [language] [path]` | `STRIDE-REPORT.md` at the project root |
 | `pr-appsec-review` | Reviews one change in two halves: OWASP findings on the changed code, STRIDE threats on the boundaries it touches — each marked introduced, aggravated or pre-existing, with a computed verdict | `/pr-appsec-review [language] [target] [base]` | nothing. It prints, and leaves the branch untouched |
@@ -73,7 +76,7 @@ git clone https://github.com/joaovicdev/claude-appsec
 ./claude-appsec/install.sh --project /path/to/your/repo
 ```
 
-This copies the five skills into `.claude/skills/`, both read-only agents into
+This copies the six skills into `.claude/skills/`, both read-only agents into
 `.claude/agents/`, imports the trigger in the repo's `CLAUDE.md`, and gitignores
 `SECURITY-REPORT.md` and `STRIDE-REPORT.md` — never the tests `/appsec-test`
 writes, which exist to be committed. Commit the result — teammates get it on
@@ -122,6 +125,68 @@ Laravel and Spring Boot. Every rule carries a stable id — `A01.Q2`, `NEST.3` �
 that is never renumbered, so a finding written today still resolves in two
 years. Category names and numbering follow the OWASP Top 10:2025 — see
 [Attribution](#attribution).
+
+## `/appsec-profile` — the architecture, written down once
+
+Run this first. It is the cheapest thing here and it improves everything else.
+
+The biggest source of false positives was never a missing rule. It was that an
+agent auditing a handler cannot see the global guard that covers it, or the
+middleware that puts the tenant predicate into every query. So it reports *"no
+tenant scoping"* on a query that is scoped, and *"route has no guard"* on a route
+that is guarded — and it re-derives that same architecture from scratch, and gets
+it wrong the same way, on every run.
+
+`/appsec-profile` writes `.claude/appsec-profile.md`: your architecture as numbered
+claims, each with a mechanism, an evidence anchor, and — the important line — the
+exceptions it does not cover.
+
+```markdown
+### P7 — Tenant scoping is applied in the predicate, by a base repository
+
+- **Mechanism:** every repository extends `TenantRepository`, whose `find*`
+  inject `tenantId` from the per-request context.
+- **Evidence:** `src/common/tenant.repository.ts:18` — `applyTenantScope(`
+- **Applies to:** every read that goes through a repository method.
+- **Does not apply to:** `DataSource.query(...)`, `createQueryBuilder(...)`,
+  `manager.find(...)` outside the base repository. Those are where the finding
+  is still real.
+```
+
+**The fourth line is the one that matters.** A claim that names a mechanism and
+stops there is the dangerous shape — the escape hatch is exactly where the real
+bug lives. So `Does not apply to:` is mandatory, it is pre-printed in the blank,
+and **a claim without it silences nothing**: the other commands read it, save the
+context, and still report what they find.
+
+The half of the file with no downside at all is the negative half. On a project
+with no global guard, the profile says so — and *that* makes later findings
+**sharper**, not quieter: an unguarded handler stops being an argument and becomes
+a finding. A route only counts as public on purpose when your code *declares* it;
+a route that is merely unguarded goes to `## Not claimed`, because a run that
+invented exemptions would be worse than no run.
+
+Then be honest about what it is:
+
+> **The profile is not evidence. It is what you told the run to stop checking.**
+
+Every line in it removes a question from every run that follows. There is no status
+to tick and nothing to confirm — the file *is* the review. It is committed, so a
+claim reaches you as a diff, and deleting a line restores the question. When a
+claim removes a finding, the report's `Limites` line says how many and which claims
+did it, so a wrong claim has somewhere to be noticed.
+
+[`examples/APPSEC-PROFILE.example.md`](examples/APPSEC-PROFILE.example.md) is a real
+run against [`examples/vulnerable-app/`](examples/vulnerable-app/), and it is worth
+reading for what it *does not* claim: seven claims, almost all of them negative,
+`## Public by design` empty, and a `## Not claimed` section recording that the
+exception filter and the request logger both exist as classes and are **never
+registered**. Declared is not applied — and that one fact flips a verdict.
+
+`--check` re-greps every anchor, writes nothing, and exits non-zero when the
+profile no longer describes the code — which is what makes it a CI gate. The plain
+run merges: it never overwrites a sentence you wrote, and a claim you deleted is
+never put back.
 
 ## `/api-secure-report` — every route, audited
 
@@ -306,6 +371,10 @@ the report has been overwritten.
 ## Running the commands
 
 ```bash
+/appsec-profile                               # run this first: record the architecture
+/appsec-profile en services/api               # English prose, one subdirectory
+/appsec-profile --check                       # CI: fail if the profile is out of date
+
 /api-secure-report                            # pt-BR, whole repository
 /api-secure-report en                         # another language; ids, paths and code stay as-is
 /api-secure-report pt-BR src/modules/orders   # scoped to a subdirectory
@@ -356,7 +425,7 @@ provable.
 ## Good to know
 
 - **No network.** Plain Markdown, read locally — nothing uploaded, no telemetry.
-- **One command modifies, and only from red.** Three of the four have no `Edit`:
+- **One command modifies, and only from red.** Four of the five have no `Edit`:
   the only documents they write are the two reports, `/pr-appsec-review` has no
   `Write` at all, and the most either can do to your repository is a `git fetch`
   of a pull request head, which asks first. Both subagents are still read-only —
@@ -380,6 +449,16 @@ provable.
   [`templates/SECURITY-NOTES.md`](skills/secure-coding/templates/SECURITY-NOTES.md)
   to a project root; the skill reads it, and the report lists what is there as
   accepted risks instead of new findings.
+- **Per-project architecture.** `/appsec-profile` writes
+  `.claude/appsec-profile.md`, and unlike the two reports it is **committed** —
+  it describes your architecture, not how to attack it, and it is worthless to
+  the next reader if it is not in the repository. Every claim in it is a question
+  later runs stop asking, which is why it is short, why every claim has to name
+  the exceptions it does not cover, and why deleting a line you do not recognise
+  is the right instinct. The two files answer different questions and have
+  different lifecycles: `SECURITY-NOTES.md` records what is **wrong** and changes
+  on every run; the profile records what **exists** and changes when the
+  architecture does.
 
 ## Layout
 
@@ -390,6 +469,8 @@ skills/
                       owasp/    A01..A10, the language-agnostic core
                       stacks/   nestjs, laravel, spring-boot, _TEMPLATE
                       templates/SECURITY-NOTES.md
+  appsec-profile/     SKILL.md + references/, templates/ — writes .claude/appsec-profile.md.
+                      Cites no id from either body, which is why both can read its output
   api-secure-report/  SKILL.md + references/ — the reference consumer of secure-coding
   app-stride-report/  SKILL.md + references/, and stride/ (S, T, R, I, D, E)
                       its own ids, its own material — cites nothing above it
@@ -400,7 +481,7 @@ skills/
                       skill with Edit, and its test is committed, not gitignored
 agents/               security-auditor, threat-modeler — the read-only workers the two
                       commands fan out to. tools: Read, Glob, Grep, Bash. No Write, no Edit
-examples/             vulnerable-app/ (a NestJS app that is wrong on purpose), the two
+examples/             vulnerable-app/ (a NestJS app that is wrong on purpose), the three
                       documents a run produces against it, and this README's screenshots
 install.sh            the non-plugin route: --project, --check
 scripts/check-ids.sh  material integrity, run in CI

@@ -27,9 +27,9 @@ the only file it writes is the report itself.
 | `language` | `pt-BR` | Output language: `pt-BR`, `en`, `es`, … Anything that is not a recognized language tag is treated as `path`. |
 | `path` | repository root | Restrict the scan to a subdirectory. Stated in the report header when set. |
 
-## Step 1 — Resolve the two roots, then load the rules
+## Step 1 — Resolve the roots, then load the rules
 
-Everything downstream is addressed by absolute path, so establish both roots
+Everything downstream is addressed by absolute path, so establish every root
 before anything else and reuse them verbatim.
 
 1. **`RULES_ROOT`** — the `secure-coding` skill directory. It is the sibling of
@@ -57,6 +57,25 @@ before anything else and reuse them verbatim.
    under **Accepted risks** is reported in its own section as accepted, not as a
    new finding. Anything under **Open** that is still present is reported with
    its existing id.
+
+6. **`PROFILE`** — `SCAN_ROOT/.claude/appsec-profile.md`. If it exists, read it:
+   it is this project's own architecture as the developer states it, in claims
+   with an evidence anchor each. It says where the guard is, how a query is
+   scoped, what is public by declaration — so the scan reports what is actually
+   missing instead of what is merely not in front of the agent that looked.
+
+   Three rules, and they are what keep a generated file from silencing real
+   findings:
+
+   - **Re-grep the anchor of every claim you are about to rely on.** A claim whose
+     symbol is no longer at that line does not apply on this run; count it and say
+     so under **Limites**.
+   - **A claim with no `Does not apply to:` line applies to nothing**, and neither
+     does one sitting under `## Stale`. Those are documentation: read them, spend
+     no context re-deriving them, and still report what you find.
+   - If there is no profile, say so **once** and name `/appsec-profile` — offered,
+     never written silently. The scan then runs exactly as it did before the file
+     existed.
 
 ## Step 2 — Enumerate the routes
 
@@ -119,6 +138,23 @@ Every subagent prompt must state, explicitly:
 - The slice this agent owns, and that everything outside it belongs to another
   agent.
 - The output contract from `references/report-format.md`, in **English**.
+- **The profile sections this agent's slice needs — never the whole file.** The
+  headings are fixed English precisely so this is a mechanical lift:
+
+  | Agent | Sections pasted |
+  |---|---|
+  | per-module | `## Authorization`, `## Tenancy and data scoping`, `## Input validation`, `## Public by design`, `## Not claimed` |
+  | config | `## Configuration and secrets`, `## Module map` |
+  | deps | none — the profile says nothing about lockfiles |
+  | auth | `## Authentication`, `## Public by design` |
+  | design | `## External systems`, `## Trust boundaries` |
+
+  Say in the prompt that a claim is the developer's word and is not to be
+  re-derived — that is where the token saving comes from. And state the tagging
+  rule: **an agent never stays silent.** It emits the block it would have emitted
+  with one extra field, `profile: P<n>`, naming the claim it relied on, and
+  consolidation decides. An agent that suppressed on its own would make the count
+  this report owes **Limites** impossible to produce.
 
 The agent's own definition already carries the rest — grep-signals-first, answer
 the review questions, no finding without a `file:line` it read. Restating those
@@ -136,6 +172,12 @@ in the prompt is harmless, but they are enforced whether you do or not.
   then by module. Number them so the report can be discussed by number.
 - **Cross-check** against `SECURITY-NOTES.md`: an accepted risk moves to its own
   section, an already-open finding keeps its existing id.
+- **Remove, and count.** A finding tagged `profile: P<n>` against a well-formed
+  claim does not enter the report — not as a finding, not as a note on the route,
+  not in the severity tables. It is counted, and that count plus the claim ids is
+  the line this run owes **Limites**. A tag against a claim with no
+  `Does not apply to:` line, a claim under `## Stale`, or a claim whose anchor did
+  not re-grep is **not** a removal: the finding stands, and `what` says why.
 
 ## Step 5 — Emit
 

@@ -13,7 +13,7 @@
 set -euo pipefail
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SKILLS=(secure-coding api-secure-report app-stride-report pr-appsec-review appsec-test)
+SKILLS=(secure-coding appsec-profile api-secure-report app-stride-report pr-appsec-review appsec-test)
 AGENTS=(security-auditor threat-modeler)
 TRIGGER_LINE='@.claude/skills/secure-coding/TRIGGER.md'
 STAMP='.claude/.secure-coding-version'
@@ -94,7 +94,9 @@ install_project() {
     ok "trigger import appended to CLAUDE.md"
   fi
 
-  # both generated documents describe how to attack this codebase
+  # both generated documents describe how to attack this codebase. the profile and
+  # the generated test describe the project instead, and are committed — which is
+  # why this block still covers exactly two files and CI asserts it has not grown
   local gi="$root/.gitignore" missing=""
   for doc in SECURITY-REPORT.md STRIDE-REPORT.md; do
     if [ -f "$gi" ] && grep -qxF "$doc" "$gi"; then
@@ -144,6 +146,11 @@ check() {
         && ok "        $a agent present" \
         || warn "        $a agent missing — the skill that dispatches it loses enforced read-only"
     done
+    if [ -f "$root/.claude/appsec-profile.md" ]; then
+      ok "        architecture profile present ($(grep -m1 -o 'Generated:[^·]*' "$root/.claude/appsec-profile.md" 2>/dev/null | sed 's/Generated: *//' || echo 'date unknown'))"
+    else
+      warn "        no architecture profile — the commands will re-derive the architecture every run (/appsec-profile)"
+    fi
   fi
 
   if [ -e "$HOME/.claude/skills/secure-coding/SKILL.md" ]; then

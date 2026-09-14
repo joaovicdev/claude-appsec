@@ -90,6 +90,14 @@ in `agents/threat-modeler.md`. The reason is portability: either half has to be
 usable, and correct, with the other uninstalled. A single convenience
 cross-reference is how that stops being true.
 
+**A third file now sits between the two bodies and belongs to neither.**
+`.claude/appsec-profile.md`, generated into the project under review by
+`/appsec-profile`, states project facts and cites no id from either taxonomy. Both
+halves read it precisely because it carries neither vocabulary, and check 23 is
+what keeps that true as the skill is edited. Note why a new check was needed at
+all: checks 4 and 20 *validate* an id, they do not forbid one — a real `A01.Q2`
+sitting in that skill would pass both and quietly tie the profile to one half.
+
 **`skills/pr-appsec-review/` is the one exception, and it is a narrow one.** A
 reviewer looking at a pull request wants both questions answered, so that skill
 consumes both bodies. It is a consumer of each and an owner of neither: the two
@@ -127,9 +135,14 @@ that item's own vocabulary. Two taxonomies, never inside one item. It owns
 neither body: if a rule seems missing, add a question to the body it belongs
 to, not a paragraph to the skill.
 
-**It is the only thing here that writes into the project under review, and the
-only one that runs that project's code.** The other three commands write their
-own report and nothing else — none of them has `Edit` — and both agents have
+**It is the only thing here that changes code the project already had, and the
+only one that runs that project's code.** That boundary is narrower than this
+paragraph used to claim, and the narrowing is honest rather than a concession:
+four commands now write a file into the project under review — the two reports,
+the architecture profile, and the test — and exactly one of them has `Edit`.
+*Writes a file* was never the line; *can change a line somebody else wrote, and
+can execute the project* is. The other four write their own artifact and nothing
+else — none of them has `Edit` — and both agents have
 neither `Write` nor `Edit`, which is why neither is dispatched from this skill:
 `security-auditor` and `threat-modeler` forbid running project code in their own
 definitions, and an agent defined never to run anything would either break that
@@ -137,13 +150,18 @@ definition or quietly skip the suite. All of it is enforced in frontmatter,
 where a drifting prompt cannot reach it. A new skill starts read-only and stays
 read-only unless it has the reason this one has — a failing test on screen,
 proving the thing it is about to change. Anything less is a guess with write
-permission.
+permission. `skills/appsec-profile/` is that rule working rather than an
+exception to it: it writes one file it alone owns, has no `Edit`, and its `Bash`
+searches and nothing else.
 
-**The generated test is committed.** The two reports are gitignored and
-overwritten on the next run; the test is the one output meant to outlive the
-document, which is why `install.sh`'s gitignore block gains no line for it and
-CI asserts `.gitignore` has not grown. An ignore rule there would delete the
-only reason the skill exists.
+**Two generated artifacts are committed, for different reasons.** The two reports
+are gitignored and overwritten on the next run. The test is meant to outlive the
+document. The profile is worthless to the next reader if it is not in the
+repository — and being committed is also the only review it gets, since a claim
+then arrives as a diff. Neither adds a line to `install.sh`'s gitignore block,
+which is why CI still asserts `.gitignore` has not grown. An ignore rule on the
+test would delete the only reason that skill exists; one on the profile would
+delete the only thing that makes a claim reviewable.
 
 **Test-harness knowledge lives in `skills/appsec-test/references/test-design.md`
 and nowhere else.** Runner names — `jest`, `supertest`, Pest, PHPUnit, JUnit,
@@ -180,6 +198,62 @@ The rename is the trap in miniature: point `AT=` at a directory that is not
 there and checks 17 and 19 both print `✔` having read nothing at all. A check
 nobody has watched fail is a check nobody should believe.
 
+## The profile is a suppression mechanism
+
+`skills/appsec-profile/` is the third kind of material here: **project facts, no
+taxonomy.** It states what a project does; it never says which rule that answers
+or whether it is enough. Eight rules, and the first three are the ones that make
+the rest safe.
+
+1. **It cites no id from either body, and check 23 enforces it** over the whole
+   skill directory including `templates/` — which no other check globs, and which
+   is exactly where an example claim would rot unnoticed. There is deliberately no
+   *"every id it cites is real"* check, because it cites none. Do not add one.
+2. **`Does not apply to:` is mandatory, and it is the only safety property.**
+   There is no status field, so a claim's authority is not gated on ceremony — it
+   is gated on shape. A claim missing that line suppresses nothing; a consumer
+   reads it, saves the context, and still reports what it finds. **A run never
+   writes `none` into it**: where discovery found no bypass it records the bypass
+   *shapes* for that mechanism anyway, because a run cannot prove a negative over
+   code it did not read. *"nothing — every read goes through it"* is a sentence
+   only a human may type, and a human typing it is the review working.
+3. **The generator records declarations, never intentions.** A route is public by
+   design when the code says so. A route that is merely unguarded is a finding and
+   goes to `## Not claimed`. Without this rule a run would manufacture exactly the
+   exemptions it was asked to discover, which is the one failure that would make
+   the file worse than nothing.
+4. **`P<n>` ids are the profile's own** — never renumbered, never reused, retired
+   numbers stay retired. The high-water mark lives in a ledger comment on the
+   file's last line, so an id in an old report stays resolvable.
+5. **A deletion is an instruction.** A claim the developer removed is not re-added
+   on the next run. It is the only way the file has of saying *stop claiming this*,
+   and a run that helpfully restored it would make the file impossible to correct.
+6. **Removal is total in the report body, and accounted for in one line.** A
+   suppressed item appears nowhere in the document; the `## Limites` line names the
+   count and the claim ids responsible. That is a deliberate trade rather than an
+   oversight: it is the only accounting that exists, and deleting it makes
+   suppression completely silent.
+7. **Only `/appsec-profile` ever writes the file.** One writer, no second write
+   path to reason about. Other skills may tell the developer to paste something
+   into a claim by hand; none of them does it.
+8. **A claim carries no severity and no grade.** Whether a mechanism is any good is
+   the audit's question. The profile only says the mechanism is there.
+
+The harness section is the one place where an existing rule needed mechanising
+rather than restating. Runner names still belong only in
+`skills/appsec-test/references/test-design.md`; the profile's `## Test harness`
+section records **the value the project itself declares, quoted**, so the template
+can define the section without naming a runner. Check 24 now enforces that rule
+across `skills/`, which nothing did before — it was defended by hand for two
+versions, and the profile is the first thing that made it easy to break by
+accident.
+
+Checks 21-22 hold the skill to the same manifest promises the other consumers
+make. And the constant guard added alongside them closes the trap described above
+rather than only warning about it: `TM`, `PR`, `AT` and `PF` are now asserted to be
+real directories, so a rename fails loudly instead of printing a tick over an empty
+read.
+
 ## Conventions worth preserving
 
 - **IDs are stable and never renumbered.** A future edition goes in
@@ -192,5 +266,6 @@ nobody has watched fail is a check nobody should believe.
   bytes work as a plugin, in a project, or in your home directory.
 - **The two bodies of material never cite each other**, so either is usable
   alone.
+- **The profile cites neither**, so either body can read it.
 
 `./scripts/check-ids.sh` enforces all of these that can be enforced mechanically.

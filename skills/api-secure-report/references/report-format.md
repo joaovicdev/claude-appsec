@@ -17,6 +17,7 @@ component: bootstrap (main.ts)   # global scope only — what the finding is abo
 location: src/orders/orders.controller.ts:31
 ref: A01.Q2                      # an id that exists in the secure-coding files
 severity: critical | high | medium | low
+profile: P7 | —                  # a profile claim that explains this, if any
 what: <one or two sentences — the defect, stated plainly>
 exploit: <concrete steps an attacker takes, with the request that does it>
 fix: <what to change, in this project's idiom, pointing at the correct pattern>
@@ -39,6 +40,13 @@ Rules the consolidation step enforces, so state them in the subagent prompt:
 - **`fix` is actionable and idiomatic.** Name the construct this stack uses —
   `where: { id, tenantId }`, a policy plus a global scope, a `Specification`
   carrying the tenant predicate — not "add proper authorization".
+- **`profile` tags, it does not silence.** An agent given profile claims never
+  stays silent about the absence a claim explains: it emits the block and sets
+  `profile:` to that claim's id. Consolidation removes the item and counts it — the
+  count is what **Limites** owes the reader, and an agent that suppressed on its
+  own would make that count impossible. A claim with no `Does not apply to:` line,
+  one under `## Stale`, or one whose anchor no longer re-greps is not a claim for
+  this purpose: leave `profile:` empty and report the finding.
 - Write in **English**. Translation happens once, at consolidation.
 
 ## 2. Severity
@@ -129,6 +137,10 @@ De `SECURITY-NOTES.md` — não são achados novos.
 - <o que não foi enumerado ou lido, e por quê>
 - <rotas dinâmicas, gateway externo, código gerado, diretórios fora do escopo>
 - Rotas efetivamente lidas: <n> de <n>.
+- Perfil de arquitetura: `.claude/appsec-profile.md`, gerado em <YYYY-MM-DD> no
+  commit `<sha>` — <n> achados removidos por claims do perfil (<P7, P9>), <n>
+  claims ignoradas por âncora ausente. Sem perfil: "nenhum perfil — nada foi
+  removido".
 - Ausência de achado não é prova de ausência de vulnerabilidade. As regras são as
   do skill `secure-coding`; um achado citando `A01.Q2` é resolvível contra
   `owasp/A01-broken-access-control.md`.
@@ -137,3 +149,9 @@ De `SECURITY-NOTES.md` — não são achados novos.
 The **Limits** section is not optional and is never empty — at minimum it states
 the coverage numbers and the last line. A report that hides what it did not look
 at is worse than no report.
+
+The profile line carries the **ids**, never the items. A finding removed by a claim
+appears nowhere else in this document, so this line is the only accounting that
+exists: `7 achados removidos` tells the reader nothing they can act on, while
+`7 removidos por P7, P9` tells them exactly which two lines to re-read. If this
+line is deleted, the suppression becomes completely silent.

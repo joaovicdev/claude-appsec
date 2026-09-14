@@ -18,6 +18,7 @@ status: unmitigated | partial | mitigated | n/a
 evidence: src/orders/orders.controller.ts:31
 impact: high | medium | low
 likelihood: high | medium | low
+profile: P7 | —                  # a profile claim that explains this, if any
 threat: <what an attacker does, one or two sentences>
 attack: <the concrete path — the request, the sequence, the precondition>
 mitigation: <what closes it, in this project's own idiom>
@@ -188,18 +189,29 @@ Toda suposição feita na decomposição. Uma premissa errada invalida as ameaç
 que dependem dela — por isso elas ficam visíveis, e não implícitas.
 
 - <o que se assumiu sobre o deploy, a rede, quem opera, o que existe fora do repo>
+- Perfil `.claude/appsec-profile.md` (<YYYY-MM-DD>): claims usadas — <P3, P4, P7>.
+  Uma claim errada invalida o que dependeu dela.
 
 ## Limites deste modelo
 
 - <o que não foi decomposto, e por quê>
 - <serviços fora deste repositório, gateway upstream, infraestrutura externa>
 - Elementos efetivamente lidos: <n> de <n>.
+- Perfil de arquitetura: `.claude/appsec-profile.md`, gerado em <YYYY-MM-DD> no
+  commit `<sha>` — <n> ameaças removidas por claims do perfil (<P7, P9>), <n>
+  claims ignoradas por âncora ausente. Sem perfil: "nenhum perfil — nada foi
+  removido".
 - Ausência de ameaça não é prova de ausência de risco. Uma ameaça citando `E.Q3`
   é resolvível contra `stride/E-elevation-of-privilege.md`.
 ````
 
 The **Premissas** and **Limites** sections are not optional and are never empty.
 A threat model that hides what it assumed is a threat model nobody can correct.
+
+The profile lines carry the **ids**, never the items. A threat removed by a claim
+appears nowhere else in this document, so those two lines are the only accounting
+that exists. `Premissas` is where a relied-on claim belongs, because that section
+already says what a wrong premise does to everything resting on it.
 
 ### The one line that is never translated
 

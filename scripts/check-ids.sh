@@ -265,7 +265,78 @@ while read -r id; do
 done < <(grep -rhoE '\b(NEST|LAR|SPR)\.[0-9]+\b' "$REPO"/skills/*/SKILL.md "$REPO"/skills/*/references/ | sort -u)
 [ "$bads" = 0 ] && pass "every stack id enumerated by a consumer is a real stack rule"
 
+# The appsec-profile skill owns no taxonomy at all. It is the only skill here that
+# cites no id from either body of material, which is exactly what lets both bodies
+# read the file it generates. Checks 21-22 hold it to the same promises the other
+# consumers make; check 23 is the one check nothing else needed, and the reason is
+# counter-intuitive: checks 4 and 20 *validate* an id and would happily pass a real
+# A01.Q2 sitting in this skill, and checks 11/16/19 never glob this directory at
+# all. There is deliberately no "every id it cites is real" check, because it cites
+# none — do not add one, wire the profile to a taxonomy and both halves stop being
+# able to read it.
+
+PF="$REPO/skills/appsec-profile"
+
+# The guard CONTRIBUTING.md documents but nothing enforced ---------------------
+# A constant pointing nowhere makes the checks below print a tick having read
+# nothing: a `while read` fed by a grep that matched no file never runs its body.
+# One line per constant closes that, so the trap is now a failure instead of a
+# paragraph of prose warning you about it.
+printf '%s\n' "${bold}skill path constants resolve${off}"
+badconst=0
+for c in TM PR AT PF; do
+  eval "d=\$$c"
+  [ -d "$d" ] || { fail "\$$c points at $d, which is not a directory — the checks using it would pass having read nothing"; badconst=1; }
+done
+[ "$badconst" = 0 ] && pass "every skill path constant points at a real directory"
+
+# 21 — every appsec-profile manifest row points at a file that exists ----------
+printf '%s\n' "${bold}appsec-profile manifest rows resolve${off}"
+pmissing=0
+while read -r f; do
+  [ -f "$PF/$f" ] || { fail "appsec-profile manifest cites $f, which does not exist"; pmissing=1; }
+done < <(grep -oE '`(references|templates)/[A-Za-z0-9._-]+\.md`' "$PF/SKILL.md" | tr -d '`' | sort -u)
+[ "$pmissing" = 0 ] && pass "every file named in the appsec-profile manifest exists"
+
+# 22 — every appsec-profile reference and template is in the manifest ---------
+# Unlike checks 15/18 this also covers templates/. That is deliberate: a template
+# is exactly where an example claim carrying a forbidden id would rot unnoticed.
+printf '%s\n' "${bold}no orphan appsec-profile files${off}"
+porphans=0
+for f in "$PF"/references/*.md "$PF"/templates/*.md; do
+  [ -e "$f" ] || continue
+  rel="${f#"$PF"/}"
+  grep -qF "\`$rel\`" "$PF/SKILL.md" || { fail "$rel exists but no manifest row loads it"; porphans=1; }
+done
+[ "$porphans" = 0 ] && pass "every appsec-profile reference and template has a manifest row"
+
+# 23 — the profile skill cites no id from either body -------------------------
+# The mirror of check 13. `[A-Z]\.Q[0-9]+` rather than the six STRIDE letters, for
+# the same reason check 19 uses it: an invented category has to be caught as
+# loudly as an invented number.
+printf '%s\n' "${bold}appsec-profile carries no taxonomy${off}"
+badpf=0
+while read -r hit; do
+  fail "appsec-profile must cite no id from either body, but carries: $hit"
+  badpf=1
+done < <(grep -rhoE 'A[0-9]{2}\.Q[0-9]+|A[0-9]{2}:2025|\b(NEST|LAR|SPR)\.[0-9]+|\b[A-Z]\.Q[0-9]+|secure-coding|RULES_ROOT' "$PF" | sort -u)
+[ "$badpf" = 0 ] && pass "appsec-profile cites no id from either body of material"
+
+# 24 — test-harness tool names stay in the one file that owns them ------------
+# CONTRIBUTING.md confines these to skills/appsec-test/references/test-design.md
+# and nowhere else under skills/. Nothing enforced it until the profile gained a
+# test-harness section, which is the first thing that makes it easy to break.
+printf '%s\n' "${bold}harness tool names stay in one file${off}"
+badharn=0
+while read -r f; do
+  [ "$f" = "$REPO/skills/appsec-test/references/test-design.md" ] && continue
+  fail "${f#"$REPO"/} names a test runner — those belong only in skills/appsec-test/references/test-design.md"
+  badharn=1
+done < <(grep -rliE 'jest|supertest|\bpest\b|phpunit|junit|mockmvc' "$REPO"/skills/ | sort -u)
+[ "$badharn" = 0 ] && pass "test runner names appear only in the one file that owns them"
+
 printf '\n'
+
 if [ "$fails" -gt 0 ]; then
   printf '%s%d check(s) failed%s\n' "$red" "$fails" "$off"
   exit 1
