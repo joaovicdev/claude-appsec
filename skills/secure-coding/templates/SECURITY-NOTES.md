@@ -38,7 +38,7 @@ expires.
 touch without understanding why, a boundary that is load-bearing and why.
 
 Descriptive architecture — where the guard is, how a query gets scoped, what is
-public on purpose — belongs in `.claude/appsec-profile.md`, which `/appsec-profile`
+public on purpose — belongs in `appsec/profile.md`, which `/appsec-profile`
 generates and every command reads. The two files answer different questions: this
 one records what is **wrong** and changes on every run; the profile records what
 **exists** and changes when the architecture does.

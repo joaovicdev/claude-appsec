@@ -1,5 +1,5 @@
 <!--
-  The blank for .claude/appsec-profile.md. Copied to SCAN_ROOT/.claude/ by
+  The blank for appsec/profile.md. Copied to SCAN_ROOT/appsec/ by
   /appsec-profile, then filled from the probe results.
 
   Wiring, repeated here so it is in front of you while you fill it in:

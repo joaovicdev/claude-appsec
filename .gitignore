@@ -8,10 +8,7 @@
 SECURITY-NOTES.md
 !skills/secure-coding/templates/SECURITY-NOTES.md
 
-# a generated report quotes internal paths and describes how to exploit them
-SECURITY-REPORT.md
-!examples/SECURITY-REPORT.example.md
-
-# a generated threat model maps the surface nobody has attacked yet
-STRIDE-REPORT.md
-!examples/STRIDE-REPORT.example.md
+# a scan of this repository would land in appsec/ and, per the layout, be
+# committed. that is right for a project under review and wrong for the plugin
+# itself, whose examples/ already holds the runs worth publishing.
+/appsec/

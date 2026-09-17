@@ -1,6 +1,6 @@
 ---
 name: appsec-profile
-description: Architecture profile of the project under review — the module map, the trust-boundary names, where the guard is, how tenancy is applied, what is public by declaration, and where validation, error handling, configuration and the test harness live — written to .claude/appsec-profile.md as claims every later run reads instead of re-deriving. Use when the user runs /appsec-profile, or asks to record or refresh the project's security architecture so the other commands stop reporting controls that already exist.
+description: Architecture profile of the project under review — the module map, the trust-boundary names, where the guard is, how tenancy is applied, what is public by declaration, and where validation, error handling, configuration and the test harness live — written to appsec/profile.md as claims every later run reads instead of re-deriving. Use when the user runs /appsec-profile, or asks to record or refresh the project's security architecture so the other commands stop reporting controls that already exist.
 allowed-tools: Read, Glob, Grep, Bash, Write
 ---
 
@@ -9,7 +9,7 @@ allowed-tools: Read, Glob, Grep, Bash, Write
 Produces one artifact: a description of what this project already does about
 authentication, authorization, tenancy, validation, errors, configuration and its
 own test harness — written as numbered claims with an evidence anchor each, at
-`.claude/appsec-profile.md`, for the other commands to read before they audit
+`appsec/profile.md`, for the other commands to read before they audit
 anything.
 
 This skill reads **neither body of material** shipped alongside it. It loads no
@@ -99,14 +99,14 @@ that confirmed everything would defeat the one property this file has.
 Every path in this file is relative to this skill's own directory, so the same
 bytes work whether the skill was installed as a plugin, committed into a project's
 `.claude/skills/`, or linked into the user's global skills directory. The one
-exception is `.claude/appsec-profile.md`, which is relative to `SCAN_ROOT` — the
+exception is `appsec/profile.md`, which is relative to `SCAN_ROOT` — the
 project under review — and never to this skill.
 
 ## Step 1 — Resolve the roots
 
 1. **`SCAN_ROOT`** — the root of the project under review, absolute; the `path`
    argument if given, otherwise the repository root.
-2. **`PROFILE`** — `SCAN_ROOT/.claude/appsec-profile.md`.
+2. **`PROFILE`** — `SCAN_ROOT/appsec/profile.md`.
 3. Capture what the header carries: today's date, and
    `git -C "$SCAN_ROOT" rev-parse --short HEAD`. If the project is not a git
    repository, the header says `Commit: —` and `--check` says it cannot detect new
@@ -197,18 +197,19 @@ file's promises checkable by a later grep.
 
 ## Step 7 — Emit
 
-Write the whole file to `PROFILE`, creating `.claude/` if absent — the only
+Write the whole file to `PROFILE`, creating `appsec/` if absent — the only
 directory this skill ever creates. Use `templates/appsec-profile.md` as the blank
 when there was no profile.
 
 Print, in `language`: the claim count per section, and what was added, refreshed,
 changed, relocated to `## Stale`, or not re-added. Close with one line — *read
-`.claude/appsec-profile.md` before the next run: every claim in it removes a
+`appsec/profile.md` before the next run: every claim in it removes a
 question.*
 
-**This file is committed, unlike the two reports.** It describes architecture, not
-exploitation, and it is worthless to the next reader if it is not in the
-repository. Do not offer to gitignore it.
+**This file is committed, like everything else under `appsec/`.** It describes
+architecture rather than exploitation, and it is worthless to the next reader if
+it is not in the repository — being committed is also the only review it gets,
+since a claim then arrives as a diff. Do not offer to gitignore it.
 
 ## Honest limits
 

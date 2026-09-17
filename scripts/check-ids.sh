@@ -335,6 +335,108 @@ while read -r f; do
 done < <(grep -rliE 'jest|supertest|\bpest\b|phpunit|junit|mockmvc' "$REPO"/skills/ | sort -u)
 [ "$badharn" = 0 ] && pass "test runner names appear only in the one file that owns them"
 
+# --- the appsec/ layout and the durable-id contract --------------------------
+# Every check below states its corpus size first. This repository's documented
+# failure mode is a check that passes by producing NO INPUT — a constant pointing
+# nowhere, a grep whose character class matched nothing — so a `while read` loop
+# that never runs its body prints a tick having verified nothing. Asserting the
+# corpus is non-empty is what turns that into a failure.
+
+RF_OWASP="$REPO/skills/api-secure-report/references/report-format.md"
+RF_STRIDE="$REPO/skills/app-stride-report/references/report-format.md"
+FR="$REPO/skills/appsec-test/references/finding-resolution.md"
+
+# 25 — no artifact path from before the appsec/ layout survives ---------------
+printf '%s\n' "${bold}no pre-appsec artifact paths${off}"
+legacy_corpus=$(find "$REPO/skills" "$REPO/agents" -name '*.md' | wc -l | tr -d ' ')
+if [ "$legacy_corpus" -lt 20 ]; then
+  fail "only $legacy_corpus markdown files found under skills/ and agents/ — this check would pass having read almost nothing"
+else
+  badlegacy=0
+  while read -r hit; do
+    fail "${hit} names a path from before the appsec/ layout"
+    badlegacy=1
+  done < <(grep -rn -e 'SECURITY-REPORT\.md' -e 'STRIDE-REPORT\.md' -e '\.claude/appsec-profile\.md' \
+             "$REPO"/skills/ "$REPO"/agents/ "$REPO"/install.sh "$REPO"/README.md "$REPO"/CONTRIBUTING.md \
+             2>/dev/null | sed "s|$REPO/||")
+  [ "$badlegacy" = 0 ] && pass "no legacy artifact path survives outside CHANGELOG.md ($legacy_corpus files searched)"
+fi
+
+# 26 — every consumer names the canonical appsec/ path -----------------------
+printf '%s\n' "${bold}consumers name the canonical appsec/ paths${off}"
+badpath=0
+for pair in \
+  "skills/secure-coding/SKILL.md:appsec/profile.md" \
+  "skills/secure-coding/TRIGGER.md:appsec/profile.md" \
+  "skills/pr-appsec-review/SKILL.md:appsec/security-report.md" \
+  "skills/pr-appsec-review/SKILL.md:appsec/stride-report.md" \
+  "skills/appsec-test/SKILL.md:appsec/security-report.md" \
+  "skills/appsec-test/SKILL.md:appsec/stride-report.md" \
+  "skills/app-stride-report/SKILL.md:appsec/security-report.md" \
+  "skills/api-secure-report/SKILL.md:appsec/profile.md" \
+  "skills/appsec-profile/SKILL.md:appsec/profile.md"; do
+  f="${pair%%:*}"; want="${pair#*:}"
+  [ -f "$REPO/$f" ] || { fail "$f does not exist — check 26 would verify nothing"; badpath=1; continue; }
+  grep -qF "$want" "$REPO/$f" || { fail "$f never names $want"; badpath=1; }
+done
+[ "$badpath" = 0 ] && pass "every consumer names the appsec/ artifact it reads"
+
+# 27 — the heading grammar agrees between producer and parser ----------------
+printf '%s\n' "${bold}finding/threat heading grammar agrees${off}"
+badgram=0
+for f in "$RF_OWASP" "$FR"; do
+  [ -f "$f" ] || { fail "${f#"$REPO"/} missing — check 27 would verify nothing"; badgram=1; continue; }
+  grep -q 'SEC-' "$f" || { fail "${f#"$REPO"/} never mentions the SEC- id form"; badgram=1; }
+done
+for f in "$RF_STRIDE" "$FR"; do
+  [ -f "$f" ] || { fail "${f#"$REPO"/} missing — check 27 would verify nothing"; badgram=1; continue; }
+  grep -qE 'TM-[0-9<]' "$f" || { fail "${f#"$REPO"/} never mentions the TM- id form"; badgram=1; }
+done
+# the old positional grammar must be gone from the parser
+grep -qE '^### <n>\.' "$FR" && { fail "finding-resolution.md still documents the positional '### <n>.' grammar"; badgram=1; }
+[ "$badgram" = 0 ] && pass "producer and parser document the same SEC-/TM- heading grammar"
+
+# 28 — the status tokens are byte-identical in both report formats -----------
+# They are fixed English on purpose: a consumer greps them literally, so a
+# translated or reworded token silently stops matching.
+printf '%s\n' "${bold}status tokens agree across report formats${off}"
+badtok=0
+for f in "$RF_OWASP" "$RF_STRIDE"; do
+  [ -f "$f" ] || { fail "${f#"$REPO"/} missing — check 28 would verify nothing"; badtok=1; continue; }
+  for tok in '[new]' '[open since ' '[reopened ' '[fixed ' '[tested '; do
+    grep -qF "$tok" "$f" || { fail "${f#"$REPO"/} does not specify the status token '$tok'"; badtok=1; }
+  done
+done
+[ "$badtok" = 0 ] && pass "all five status tokens are specified identically in both report formats"
+
+# 29 — the ledger schema and its columns agree -------------------------------
+printf '%s\n' "${bold}ledger schema agrees across report formats${off}"
+badled=0
+for f in "$RF_OWASP" "$RF_STRIDE"; do
+  [ -f "$f" ] || { fail "${f#"$REPO"/} missing — check 29 would verify nothing"; badled=1; continue; }
+  grep -qF 'appsec-ledger · schema 1' "$f" || { fail "${f#"$REPO"/} does not specify the appsec-ledger schema line"; badled=1; }
+  grep -qF 'id | ref | key | status | first seen | last seen | test' "$f" \
+    || { fail "${f#"$REPO"/} does not specify the 7 ledger columns"; badled=1; }
+done
+[ "$badled" = 0 ] && pass "both report formats specify the same ledger schema and columns"
+
+# 30 — the single-writer rule on the ledger is stated where it binds ---------
+# Two writers in one id space is the failure the ledger exists to prevent, and
+# the rule only works if the skill that writes the column also carries it.
+printf '%s\n' "${bold}ledger single-writer rule is stated${off}"
+badwr=0
+AT_SKILL="$REPO/skills/appsec-test/SKILL.md"
+[ -f "$AT_SKILL" ] || { fail "appsec-test/SKILL.md missing — check 30 would verify nothing"; badwr=1; }
+if [ "$badwr" = 0 ]; then
+  grep -qF 'Never an id, never the item' "$AT_SKILL" \
+    || { fail "appsec-test/SKILL.md no longer states that it writes no id and no status"; badwr=1; }
+  for f in "$RF_OWASP" "$RF_STRIDE"; do
+    grep -qF 'has one writer, and it is not this skill' "$f" \
+      || { fail "${f#"$REPO"/} no longer states who owns the ledger test column"; badwr=1; }
+  done
+fi
+[ "$badwr" = 0 ] && pass "the ledger's single-writer rule is stated in all three files that depend on it"
+
 printf '\n'
 
 if [ "$fails" -gt 0 ]; then

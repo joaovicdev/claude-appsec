@@ -91,7 +91,7 @@ usable, and correct, with the other uninstalled. A single convenience
 cross-reference is how that stops being true.
 
 **A third file now sits between the two bodies and belongs to neither.**
-`.claude/appsec-profile.md`, generated into the project under review by
+`appsec/profile.md`, generated into the project under review by
 `/appsec-profile`, states project facts and cites no id from either taxonomy. Both
 halves read it precisely because it carries neither vocabulary, and check 23 is
 what keeps that true as the skill is edited. Note why a new check was needed at
@@ -154,14 +154,28 @@ permission. `skills/appsec-profile/` is that rule working rather than an
 exception to it: it writes one file it alone owns, has no `Edit`, and its `Bash`
 searches and nothing else.
 
-**Two generated artifacts are committed, for different reasons.** The two reports
-are gitignored and overwritten on the next run. The test is meant to outlive the
-document. The profile is worthless to the next reader if it is not in the
-repository — and being committed is also the only review it gets, since a claim
-then arrives as a diff. Neither adds a line to `install.sh`'s gitignore block,
-which is why CI still asserts `.gitignore` has not grown. An ignore rule on the
-test would delete the only reason that skill exists; one on the profile would
-delete the only thing that makes a claim reviewable.
+**Every generated artifact is committed, and the installer writes no ignore
+rule.** The test is meant to outlive the document. The profile is worthless to
+the next reader if it is not in the repository — and being committed is also the
+only review it gets, since a claim then arrives as a diff. The two reports are
+committed for a third reason: their value is the diff between two runs, and a
+file nobody shares is a file nobody diffs. CI asserts the installer leaves the
+target's `.gitignore` untouched, which is the inverse of the assertion it used to
+make.
+
+That is a real trade — both reports spell out how to attack the project under
+review. The decision belongs to whoever owns that repository, not to this
+installer, so nothing here writes `/appsec/` into a `.gitignore` on their behalf
+and the two report skills say plainly, once, what the document contains.
+
+**The reports carry durable ids, and that is what makes them worth keeping.**
+`SEC-<n>` and `TM-<n>` come out of an `appsec-ledger` comment on the document's
+last lines — the same never-renumbered, never-reused promise every other id in
+this repository makes, and the same shape `appsec-profile`'s `P<n>` ledger
+already uses. Both report formats specify that ledger identically; checks 28, 29
+and 30 fail the build when they drift apart. The prose of a report is regenerated
+whole on every run, the identity is not, and `/appsec-test` may write exactly one
+column of that ledger and nothing else.
 
 **Test-harness knowledge lives in `skills/appsec-test/references/test-design.md`
 and nowhere else.** Runner names — `jest`, `supertest`, Pest, PHPUnit, JUnit,

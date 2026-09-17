@@ -8,7 +8,9 @@ allowed-tools: Read, Glob, Grep, Bash, Write, Edit
 
 Produces one artifact: one test, committed to the project's own suite, carrying
 the attack assertion and the positive control — red when the finding is real —
-and, only from there, the minimal fix that turns it green.
+and, only from there, the minimal fix that turns it green. When the item came
+from one of the two reports, it offers to record the test back on that item, so
+the report stops being a claim nobody can tell has been acted on.
 
 This skill is a **consumer** of both bodies of material. It restates neither — it
 reads their files and cites their stable ids (`A01.Q2`, `NEST.3`, `E.Q3`). If a
@@ -46,7 +48,7 @@ optional, the two flags mutually exclusive.
 | Argument | Default | Meaning |
 |---|---|---|
 | `language` | `pt-BR` | Output language: `pt-BR`, `en`, `es`, … Only the first token is tested; anything that is not a recognized language tag is treated as `finding`. |
-| `finding` | the reports at `SCAN_ROOT` | The item to prove: a finding number (`3`, `#3`), a threat id (`TM-07`), a ref (`A01.Q2`, `NEST.3`, `E.Q3`), a ref pinned to a number (`A01.Q2#3`), a `file:line`, or the claim in prose. With none of those, the reports are triaged and the provable items offered for a pick. |
+| `finding` | the reports at `SCAN_ROOT` | The item to prove: a finding id (`SEC-7`), a threat id (`TM-3`), a ref (`A01.Q2`, `NEST.3`, `E.Q3`), a ref pinned to an id (`A01.Q2#SEC-7`), a `file:line`, or the claim in prose. With none of those, the reports are triaged and the provable items offered for a pick. |
 | `--fix` | the question at the gate | Answers the gate's question yes in advance. Skips the question, never the gate. |
 | `--no-fix` | the question at the gate | Answers it no. The test is still written, run and kept. |
 
@@ -54,8 +56,8 @@ Examples, each a form `references/finding-resolution.md` resolves:
 
 ```
 /appsec-test                               # triage the reports, then pick
-/appsec-test en 3                          # finding 3, in English
-/appsec-test TM-07 --no-fix                # prove the threat, stop there
+/appsec-test en SEC-7                      # finding SEC-7, in English
+/appsec-test TM-3 --no-fix                 # prove the threat, stop there
 /appsec-test 'GET /orders/:id returns another tenant order'
 ```
 
@@ -104,13 +106,15 @@ Then, still in Step 1:
    same detection selects the harness recipe in Step 3. No match means the
    language-agnostic core applies alone — that is the design, not a degraded run.
 5. Read these at `SCAN_ROOT` if they exist, and say which you found:
-   - **`SECURITY-REPORT.md`** — a route audit, supplying findings by number.
-     Those numbers are re-derived every run, so Step 2 resolves them at once.
-   - **`STRIDE-REPORT.md`** — a threat model, supplying threats by `TM-<nn>`.
+   - **`appsec/security-report.md`** — a route audit, supplying findings by their
+     durable `SEC-<n>` id, and the `appsec-ledger` comment on its last lines,
+     which says which items already carry a test.
+   - **`appsec/stride-report.md`** — a threat model, supplying threats by `TM-<n>`,
+     with the same ledger on its last lines.
    - **`SECURITY-NOTES.md`** — an item recorded there as an accepted risk is not
      proved; say so and stop. `## Verified clean` is the table Step 6 offers to
      append a row to — offered, never written silently.
-   - **`.claude/appsec-profile.md`** — this project's architecture as the developer
+   - **`appsec/profile.md`** — this project's architecture as the developer
      states it. Here it is read for two things the other commands do not use it
      for: `## Test harness`, which is the largest single saving the file buys any
      command, and `## Authentication`, which is how an authenticated request is
@@ -168,7 +172,7 @@ pass because there was nothing to assert is worse than no test, because it is
 committed and it reads as evidence.
 
 **A profile claim is never a reason not to write the test.** The other commands
-read `.claude/appsec-profile.md` to stop asking a question; this one reads it to
+read `appsec/profile.md` to stop asking a question; this one reads it to
 find out whether the answer was ever true. An item that a claim would have removed
 from a report is the most valuable test in the project, because it is the only
 thing here that can turn a claim from an assertion into a fact — and a claim is
@@ -237,7 +241,7 @@ re-shipped with a green badge.
 
 Use the template in `references/fix-protocol.md`. Translate the prose and the
 labels into the requested language. Never translate: ids (`A01.Q2`, `NEST.3`,
-`E.Q3`, `TM-04`), the outcome names `RED`, `GREEN` and `BROKEN`, source and test
+`E.Q3`, `SEC-7`, `TM-3`), the outcome names `RED`, `GREEN` and `BROKEN`, source and test
 file paths, git refs and shas, runner and framework names, assertion names, HTTP
 methods, identifiers, or code.
 
@@ -245,6 +249,36 @@ Close with the run's **Limites**, mandatory and never empty: what the outcome
 proves and what it does not, whether the baseline was already red, and which
 input family did not run. A run that hides what it did not assert is worse than
 no run — the test is committed, and the next reader trusts it.
+
+## Step 8 — Record the test on the item it proves
+
+A test nobody can find from the report is a test the next reader re-writes. If
+the item resolved from one of the two reports, offer — once, in the requested
+language, the way the fix gate asks — to record it there. On a yes, write **two**
+places in that report, and nothing else:
+
+1. **The `test` column of this item's ledger row**, which is what survives:
+   `test/orders.security.spec.ts · <YYYY-MM-DD> · red` for a test left unfixed,
+   `· red→green` when the fix landed in the same run. Derive that string from the
+   test's own header block so the two can never disagree.
+2. **A `Teste de regressão:` bullet** in last position under the item's heading,
+   and a `[tested <YYYY-MM-DD>]` token appended to that heading.
+
+**Write nothing else in that document.** Never an id, never the item's status,
+never the order, never the counts. The report owns those, and decides on its next
+run whether the finding is still open by re-reading the code — a green test is
+evidence, not proof the defect is gone. Two writers in one id space is the
+failure the single ledger exists to prevent.
+
+**The body is a rendering; the ledger is the fact.** The next
+`/api-secure-report` regenerates the whole document and rebuilds every bullet and
+token from the ledger. Writing only the bullet would look right and be gone by
+the next run.
+
+**An item that came from no report cannot be recorded.** A `file:line` or a prose
+claim has no row and no id, and this skill does not mint one. Say so in one line,
+name `/api-secure-report`, and stop — the next run picks the defect up, and the
+test is already committed and already passing or failing on its own merits.
 
 ## Honest limits
 

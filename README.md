@@ -21,7 +21,7 @@ is about to fix. Still not a scanner, and nothing leaves your machine.
   </a>
 </p>
 <p align="center"><sub>
-  The data-flow diagram <code>/app-stride-report</code> writes into <code>STRIDE-REPORT.md</code>,
+  The data-flow diagram <code>/app-stride-report</code> writes into <code>appsec/stride-report.md</code>,
   rendered from Mermaid — one of the six skills below. From a real run;
   click to enlarge.
 </sub></p>
@@ -33,19 +33,19 @@ One plugin, six skills. The first applies itself; the other five are commands.
 | Skill | What it does | How you invoke it | What it writes |
 |---|---|---|---|
 | `secure-coding` | OWASP Top 10:2025 rules Claude reads *before* it writes a route, guard, query, auth flow, config or dependency — then flags what it just wrote, citing the rule id | nothing to run — the trigger in your `CLAUDE.md` loads it | nothing. Inline flags, while you work |
-| `appsec-profile` | Records your project's own architecture once — the module map, the boundary names, where the guard is, how a query gets scoped and where it doesn't, what's public on purpose, where the test harness is — as claims the other five read instead of re-deriving | `/appsec-profile [language] [path] [--check]` | `.claude/appsec-profile.md` — committed, not gitignored |
-| `api-secure-report` | Every HTTP route in the project, each marked clean or carrying findings: route → vulnerability → how an attacker reaches it → fix | `/api-secure-report [language] [path]` | `SECURITY-REPORT.md` at the project root |
-| `app-stride-report` | Decomposes the system into actors, processes, stores, flows and trust boundaries, draws the data-flow diagram, works STRIDE across every element | `/app-stride-report [language] [path]` | `STRIDE-REPORT.md` at the project root |
+| `appsec-profile` | Records your project's own architecture once — the module map, the boundary names, where the guard is, how a query gets scoped and where it doesn't, what's public on purpose, where the test harness is — as claims the other five read instead of re-deriving | `/appsec-profile [language] [path] [--check]` | `appsec/profile.md` |
+| `api-secure-report` | Every HTTP route in the project, each marked clean or carrying findings: route → vulnerability → how an attacker reaches it → fix | `/api-secure-report [language] [path]` | `appsec/security-report.md`, previous run archived in `appsec/history/` |
+| `app-stride-report` | Decomposes the system into actors, processes, stores, flows and trust boundaries, draws the data-flow diagram, works STRIDE across every element | `/app-stride-report [language] [path]` | `appsec/stride-report.md`, previous run archived in `appsec/history/` |
 | `pr-appsec-review` | Reviews one change in two halves: OWASP findings on the changed code, STRIDE threats on the boundaries it touches — each marked introduced, aggravated or pre-existing, with a computed verdict | `/pr-appsec-review [language] [target] [base]` | nothing. It prints, and leaves the branch untouched |
 | `appsec-test` | Takes one finding and writes the test that fails because it is real — the attack assertion red, a positive control green — runs it in your own framework, and only from red offers the minimal fix | `/appsec-test [language] [finding] [--fix\|--no-fix]` | a test file in your test directory — committed, not gitignored — and, if you say so, the fix |
 
 The two report commands take the same two optional arguments: `language`
 defaults to `pt-BR`, `path` to the repository root. `/pr-appsec-review` takes a
 target instead — a PR link, or a pair of branches; `/appsec-test` takes the
-finding, in whatever form you have it. The first three are read-only: the two
-reports overwrite their document on every run, and the PR review writes nothing
-at all. `/appsec-test` is the one that writes, and what it writes first is a
-test.
+finding, in whatever form you have it. The first three leave your code alone: the
+two reports write only inside `appsec/`, archiving the previous run rather than
+overwriting it, and the PR review writes nothing at all. `/appsec-test` is the
+one that touches your project, and what it writes first is a test.
 
 ## Install
 
@@ -77,10 +77,9 @@ git clone https://github.com/joaovicdev/claude-appsec
 ```
 
 This copies the six skills into `.claude/skills/`, both read-only agents into
-`.claude/agents/`, imports the trigger in the repo's `CLAUDE.md`, and gitignores
-`SECURITY-REPORT.md` and `STRIDE-REPORT.md` — never the tests `/appsec-test`
-writes, which exist to be committed. Commit the result — teammates get it on
-their next pull.
+`.claude/agents/`, and imports the trigger in the repo's `CLAUDE.md`. It writes
+no ignore rule: everything the commands generate lands in `appsec/` and is meant
+to be committed. Commit the result — teammates get it on their next pull.
 
 > **The trigger is not optional.** *"Add an endpoint"* does not read as a
 > security request, so nothing would make Claude open the skill on its own.
@@ -137,7 +136,7 @@ tenant scoping"* on a query that is scoped, and *"route has no guard"* on a rout
 that is guarded — and it re-derives that same architecture from scratch, and gets
 it wrong the same way, on every run.
 
-`/appsec-profile` writes `.claude/appsec-profile.md`: your architecture as numbered
+`/appsec-profile` writes `appsec/profile.md`: your architecture as numbered
 claims, each with a mechanism, an evidence anchor, and — the important line — the
 exceptions it does not cover.
 
@@ -286,7 +285,7 @@ the header rather than reporting an empty section.
 
 The other three commands produce findings and no evidence that any of them is
 real — a report lists them and cannot tell you which would actually reproduce.
-This one takes a single item — a finding number from `SECURITY-REPORT.md`, a
+This one takes a single item — a finding id from `appsec/security-report.md`, a
 `TM-<nn>` from the threat model, a ref like `A01.Q2`, a `file:line`, or the claim
 in prose — finds your test runner, and writes the test that **fails** because the
 finding is real. Only then, with the test red on screen, does it offer to fix it.
@@ -363,10 +362,14 @@ two reports on this page, there is no example output to link to, because
 has no suite to go red. Point the command at a project of yours that has one.
 
 The test lands where your project already keeps its tests, in the framework and
-the style it already uses, one file per module rather than one per finding. And
-unlike the two reports, which are gitignored and overwritten on every run, it is
-committed. A report is the claim; the test is what still catches the defect after
-the report has been overwritten.
+the style it already uses, one file per module rather than one per finding. A
+report is the claim; the test is what keeps catching the defect after everyone
+has stopped reading the report.
+
+It also offers to record itself back on the finding it proved — the report's
+ledger gains the test's path and the item gains a `[tested <date>]` marker, so
+the next run still shows which findings are pinned down and which are only
+written down.
 
 ## Running the commands
 
@@ -388,19 +391,54 @@ the report has been overwritten.
 /pr-appsec-review pt-BR https://github.com/org/repo/pull/123
 
 /appsec-test                                  # triage the reports, then pick one
-/appsec-test 3                                # finding 3 of SECURITY-REPORT.md
+/appsec-test SEC-7                            # finding SEC-7 of appsec/security-report.md
 /appsec-test TM-07 --no-fix                   # prove the threat, write no fix
 /appsec-test 'GET /orders/:id returns another tenant order'
 ```
 
-The two reports print to the terminal and write their document to the project
-root, overwriting the previous one. Run them in either order — if
-`SECURITY-REPORT.md` already exists, `/app-stride-report` reads it and marks the
-threats that report already confirmed in code, citing it by finding number.
+Everything the commands generate lives in one directory:
+
+```
+appsec/
+  profile.md              /appsec-profile — your architecture, as claims
+  security-report.md      /api-secure-report — the current run
+  stride-report.md        /app-stride-report — the current run
+  history/
+    security-2026-09-10-1d67aba.md    every run before the current one,
+    security-2026-09-13-324304f.md    named by its date and commit
+    stride-2026-09-13-324304f.md
+
+SECURITY-NOTES.md         yours, hand-written, stays at the project root
+```
+
+Findings and threats carry ids that survive a regeneration — `SEC-7`, `TM-3` —
+so a run opens by telling you what changed since the last one:
+
+```
+## Desde a execução anterior
+
+Anterior: 2026-09-10, commit `1d67aba`
+
+| | Qtd | Ids |
+|---|---|---|
+| Novos | 3 | SEC-45, SEC-46, SEC-47 |
+| Reabertos | 1 | SEC-12 |
+| Corrigidos | 5 | SEC-3, SEC-8, SEC-19, SEC-22, SEC-30 |
+| Inalterados | 12 | — |
+```
+
+That table is the reason the ids are durable. Numbering findings by severity, as
+this did until 3.0.0, means finding 3 today and finding 3 tomorrow are different
+defects, and a diff of two runs is noise.
+
+The two reports print to the terminal and write their document into `appsec/`,
+moving the previous run into `appsec/history/` first. Run them in either order —
+if `appsec/security-report.md` already exists, `/app-stride-report` reads it and
+marks the threats that report already confirmed in code, citing it by finding id.
 `/pr-appsec-review` only prints, and reads both documents if they are there: an
-item either one already records is marked pre-existing, cited by its number.
-`/appsec-test` reads them too, and resolves `3` or `TM-07` against them — but it
-needs neither: a ref, a `file:line` or the claim in prose is enough, which is
+item either one already records is marked pre-existing, cited by its id.
+`/appsec-test` reads them too, and resolves `SEC-7` or `TM-3` against them — but
+it needs neither: a ref, a `file:line` or the claim in prose is enough, which is
 what lets it prove an item `/pr-appsec-review` just printed and never wrote down.
 
 ## A threat is not a finding
@@ -436,9 +474,13 @@ provable.
   code under test only after the test it wrote has gone red, and only when you
   answer yes. It dispatches no subagent, because both of them are defined never
   to run project code.
-- **Both documents are sensitive.** They quote internal paths and spell out how
-  to attack them; the threat model maps the surface nobody has tried yet. Keep
-  them out of git (`install.sh --project` does; otherwise the skills offer to).
+- **Both documents are sensitive, and both are committed.** They quote internal
+  paths and spell out how to attack them; the threat model maps the surface
+  nobody has tried yet. They are committed anyway, because a history nobody
+  shares is a history nobody compares — and comparing two runs is the point. If
+  your repository is public, or readable well beyond the team, decide that
+  knowingly: `echo /appsec/ >> .gitignore` keeps it local, at the cost of the
+  history. Nothing adds that line for you.
 - **A clean document is not proof.** Every run ends with a `Limits` section
   saying what was not covered — read it. The threat model adds `Premissas`,
   because a wrong assumption invalidates every threat resting on it.
@@ -450,8 +492,8 @@ provable.
   to a project root; the skill reads it, and the report lists what is there as
   accepted risks instead of new findings.
 - **Per-project architecture.** `/appsec-profile` writes
-  `.claude/appsec-profile.md`, and unlike the two reports it is **committed** —
-  it describes your architecture, not how to attack it, and it is worthless to
+  `appsec/profile.md` — it describes your architecture, not how to attack it,
+  and it is worthless to
   the next reader if it is not in the repository. Every claim in it is a question
   later runs stop asking, which is why it is short, why every claim has to name
   the exceptions it does not cover, and why deleting a line you do not recognise
@@ -469,7 +511,7 @@ skills/
                       owasp/    A01..A10, the language-agnostic core
                       stacks/   nestjs, laravel, spring-boot, _TEMPLATE
                       templates/SECURITY-NOTES.md
-  appsec-profile/     SKILL.md + references/, templates/ — writes .claude/appsec-profile.md.
+  appsec-profile/     SKILL.md + references/, templates/ — writes appsec/profile.md.
                       Cites no id from either body, which is why both can read its output
   api-secure-report/  SKILL.md + references/ — the reference consumer of secure-coding
   app-stride-report/  SKILL.md + references/, and stride/ (S, T, R, I, D, E)

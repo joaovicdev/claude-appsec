@@ -67,6 +67,21 @@ An item with no `origin` is discarded at consolidation. `pre-existing` is a real
 and useful answer — it is a defect in code someone is already editing — and it is
 never inflated to `introduced` to make it land harder.
 
+### This review's numbers are local, and never durable ids
+
+`appsec/security-report.md` and `appsec/stride-report.md` issue durable ids —
+`SEC-7`, `TM-3` — out of a ledger they own and rewrite. **This skill has no
+ledger and writes no file, so it issues none.** Its `1.`, `2.`, `TM-1` are
+handles for a document on the screen in front of a reviewer, nothing more, and
+they mean nothing on the next run.
+
+Where an item is `pre-existing` *and* one of those reports already records it,
+name that report's durable id in the **Onde no PR** bullet. That is the id the
+reviewer can act on, look up, and hand to `/appsec-test` — and if the ledger's
+last column shows it already carries a regression test, say so, because a
+pre-existing defect that is pinned by a test is a different conversation from one
+that is not.
+
 ### The evidence rule — STRIDE axis only
 
 A threat is a hypothesis with a status; a finding is a confirmed defect. That
@@ -231,12 +246,13 @@ do arquivo.
 ### 5. Bootstrap da aplicação — Média — `NEST.1` — pré-existente
 
 - **Componente:** `src/main.ts:14`
-- **Onde no PR:** não alterado por este PR — já presente em `9c8d7e6`
+- **Onde no PR:** não alterado por este PR — já presente em `9c8d7e6`.
+  Registrado como `SEC-12` em `appsec/security-report.md`, sem teste de regressão.
 - **A vulnerabilidade / Como um atacante pode explorar / Mitigação:** …
 
 ## Ameaças STRIDE
 
-### TM-01 — OrdersController — Risco alto — `E.Q3` — introduzida
+### TM-1 — OrdersController — Risco alto — `E.Q3` — introduzida
 
 - **Elemento:** processo `OrdersController` (`src/orders/orders.controller.ts:31`)
 - **Fronteira:** internet → app
@@ -246,7 +262,7 @@ do arquivo.
 - **Mitigação:** <o que fecha, no idioma deste projeto>
 - **Efeito do PR:** introduz — o elemento não existia em `9c8d7e6`
 
-### TM-02 — …
+### TM-2 — …
 
 ## Mudanças em fronteiras de confiança
 
@@ -271,14 +287,14 @@ Toda suposição feita para revisar esta mudança. Uma premissa errada invalida 
 itens que dependem dela — por isso ficam visíveis, e não implícitas.
 
 - <base inferida, ambiente de deploy, o que existe fora do repositório>
-- Perfil `.claude/appsec-profile.md` (<YYYY-MM-DD>): claims usadas — <P3, P4, P7>.
+- Perfil `appsec/profile.md` (<YYYY-MM-DD>): claims usadas — <P3, P4, P7>.
   Uma premissa errada invalida os itens que dependeram dela.
 
 ## Limites desta revisão
 
 - <o que não foi lido, e por quê — binário, arquivo gerado, head não baixado>
 - Arquivos alterados efetivamente lidos: <n> de <n>.
-- Perfil de arquitetura: `.claude/appsec-profile.md`, gerado em <YYYY-MM-DD> no
+- Perfil de arquitetura: `appsec/profile.md`, gerado em <YYYY-MM-DD> no
   commit `<sha>` — <n> achados e <n> ameaças removidos por claims do perfil
   (<P7, P9>), contados por metade. Sem perfil: "nenhum perfil — nada foi removido".
 - <qual metade não rodou, e por quê — nunca omitir>

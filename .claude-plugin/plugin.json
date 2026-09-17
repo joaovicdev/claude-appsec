@@ -1,7 +1,7 @@
 {
   "name": "claude-appsec",
   "description": "Code security for Claude Code: OWASP Top 10:2025 rules the agent applies while it writes backend/API code in any language, /appsec-profile to record the project's own architecture once so the other commands stop reporting controls that already exist, /api-secure-report for a full security inventory of every HTTP route, /app-stride-report for a STRIDE threat model of the system, /pr-appsec-review for a security review of a single pull request, and /appsec-test for the failing test that proves one finding is real before it is fixed.",
-  "version": "2.3.0",
+  "version": "3.0.0",
   "author": {
     "name": "João Victor",
     "url": "https://github.com/joaovicdev"

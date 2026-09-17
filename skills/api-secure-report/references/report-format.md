@@ -62,20 +62,104 @@ place:
 | **low** | Defense in depth, hardening, or a defect whose impact is bounded and non-sensitive. |
 
 When two severities are arguable, take the higher one and say why in `what`.
+## 3. Identity, status and the ledger
 
-## 3. Report template
+A report is regenerated whole on every run: **the prose is replaced, the identity
+is not.** This is the one thing here most easily got wrong — `appsec-profile`
+merges because a human edits it, and a report does not merge because nothing in
+it is hand-written. What crosses runs is the id, the date the item was first
+seen, its status history, and its regression test.
+
+### The id
+
+`SEC-<n>`, issued once and **never renumbered, never reused** — the same promise
+every other id in this repository makes. No zero padding: `SEC-7`, `SEC-142`,
+like `P7` in the profile. Padding only ever made sense while the number carried
+the ordering, and it no longer does.
+
+The **natural key** an id is matched by:
+
+| Finding | Key |
+|---|---|
+| route-scoped | `(METHOD + route path, ref)` |
+| global | `(file path of `location`, ref)` — the path only, never the line |
+
+### Reconciling a run against the ledger
+
+In this order, and never by prose similarity — the profile's rule, for the
+profile's reason:
+
+1. Match by key.
+2. Exactly one unmatched item on each side sharing a key → the same finding; the
+   id carries over.
+3. Several sharing a key — two `A02.Q5` findings both in `src/main.ts` is the
+   normal case — → pair them by `location`, nearest line wins. Leftovers are new.
+4. A ledger row nothing matched this run → `fixed`, dated today.
+5. A match whose ledger status was `fixed` → `reopened`, **the same id**.
+6. Anything still unmatched → a new id at the next number.
+
+A route that was renamed reads as one `fixed` and one `new`. That is correct and
+honest: nothing in the document can tell a renamed route from a deleted one plus
+an added one, and guessing would put the wrong history on a finding.
+
+### Status tokens
+
+Four tokens, **fixed English, never translated**, appended to the finding
+heading. They are deliberately literal strings for the same mechanical reason the
+profile's headings are English: a consumer greps them.
+
+```
+[new]                    first run this finding appeared in
+[open since <date>]      carried over unchanged
+[reopened <date>]        matched again after having been fixed
+[fixed <date>]           matched nothing this run
+```
+
+A `[fixed …]` finding appears **only** in `## Desde a execução anterior`, for
+exactly one run, and then leaves the document. Its ledger row stays, so a reopen
+gets its id back.
+
+### The ledger
+
+An HTML comment on the last lines of the report — self-contained, exactly like
+the profile's ledger, so there is no second file to fall out of sync. Every
+column is an id, a ref, a path or a date, so the block is identical whatever
+language the prose was written in.
+
+```
+<!-- appsec-ledger · schema 1 · security · ids issued: SEC-1..SEC-47 · from 324304f on 2026-09-13
+SEC-1  | A05.Q1 | POST /auth/login | open  | 2026-08-15 | 2026-09-13 | test/auth.security.spec.ts · 2026-09-12 · red→green
+SEC-7  | A01.Q2 | GET /orders/:id  | open  | 2026-08-15 | 2026-09-13 | —
+SEC-12 | A04.Q1 | src/auth/hash.ts | fixed | 2026-08-15 | 2026-09-10 | —
+-->
+```
+
+`id | ref | key | status | first seen | last seen | test`
+
+If the comment is gone, fall back to `max(id present)` and **say so in the
+terminal summary** — from that point a number can be reused, and a test or a
+threat pointing at `SEC-12` would resolve to the wrong defect.
+
+### The `test` column has one writer, and it is not this skill
+
+`/appsec-test` fills it, and fills nothing else: never an id, never `status`,
+never the order. A green test is evidence, not proof the finding is gone —
+whether it is still open is decided here, by re-reading the code.
+
+## 4. Report template
 
 Below is the `pt-BR` rendering, which is the default. For another language,
-translate labels and prose and keep the structure, the ids, the paths and the
-code exactly as they are.
+translate labels and prose and keep the structure, the ids, the paths, the
+status tokens and the code exactly as they are.
 
 ```markdown
 # Relatório de segurança da API — <projeto>
 
 **Stack:** <detectada, ou "nenhuma detectada — core agnóstico">
 **Escopo:** <raiz do repositório, ou o caminho passado>
-**Data:** <YYYY-MM-DD>
+**Data:** <YYYY-MM-DD> · **Commit:** `<sha>`
 **Rotas varridas:** <n> · **Com achado:** <n> · **Limpas:** <n>
+**Com teste de regressão:** <n> de <n> achados
 
 ## Resumo
 
@@ -91,6 +175,17 @@ code exactly as they are.
 | A01:2025 — Broken Access Control | 4 |
 | A05:2025 — Injection | 2 |
 
+## Desde a execução anterior
+
+Anterior: <YYYY-MM-DD>, commit `<sha>` — `appsec/history/security-<YYYY-MM-DD>-<sha>.md`.
+
+| | Qtd | Ids |
+|---|---|---|
+| Novos | 3 | SEC-45, SEC-46, SEC-47 |
+| Reabertos | 1 | SEC-12 |
+| Corrigidos | 5 | SEC-3, SEC-8, SEC-19, SEC-22, SEC-30 |
+| Inalterados | 12 | — |
+
 ## Inventário de rotas
 
 Toda rota do projeto, com achado ou sem.
@@ -103,21 +198,25 @@ Toda rota do projeto, com achado ou sem.
 
 ## Achados
 
-### 1. GET /orders/:id — Alta — `A01.Q2`
+### SEC-7 — GET /orders/:id — Alta — `A01.Q2` [open since 2026-08-15] [tested 2026-09-12]
 
 - **Rota vulnerável:** `GET /orders/:id` (`src/orders/orders.controller.ts:31`)
 - **A vulnerabilidade:** <o defeito, em uma ou duas frases>
 - **Como um atacante pode explorar:** <passos concretos, com a requisição>
 - **Mitigação:** <o que mudar, no idioma da stack>
+- **Teste de regressão:** `test/orders.security.spec.ts` — provado vermelho em
+  2026-09-12, corrigido na mesma mudança
 
-### 2. …
+### SEC-45 — POST /orders — Crítica — `A05.Q1` [new]
+
+- **Rota vulnerável:** …
 
 ## Achados globais
 
 Não pertencem a uma rota específica — mesma estrutura, com **Componente** no
 lugar de **Rota vulnerável**.
 
-### 8. Bootstrap da aplicação — Alta — `NEST.1`
+### SEC-12 — Bootstrap da aplicação — Alta — `NEST.1` [open since 2026-08-15]
 
 - **Componente:** `src/main.ts:14`
 - **A vulnerabilidade:** …
@@ -137,13 +236,18 @@ De `SECURITY-NOTES.md` — não são achados novos.
 - <o que não foi enumerado ou lido, e por quê>
 - <rotas dinâmicas, gateway externo, código gerado, diretórios fora do escopo>
 - Rotas efetivamente lidas: <n> de <n>.
-- Perfil de arquitetura: `.claude/appsec-profile.md`, gerado em <YYYY-MM-DD> no
+- Perfil de arquitetura: `appsec/profile.md`, gerado em <YYYY-MM-DD> no
   commit `<sha>` — <n> achados removidos por claims do perfil (<P7, P9>), <n>
   claims ignoradas por âncora ausente. Sem perfil: "nenhum perfil — nada foi
   removido".
 - Ausência de achado não é prova de ausência de vulnerabilidade. As regras são as
   do skill `secure-coding`; um achado citando `A01.Q2` é resolvível contra
   `owasp/A01-broken-access-control.md`.
+
+<!-- appsec-ledger · schema 1 · security · ids issued: SEC-1..SEC-47 · from <sha> on <YYYY-MM-DD>
+SEC-7  | A01.Q2 | GET /orders/:id  | open | 2026-08-15 | 2026-09-13 | test/orders.security.spec.ts · 2026-09-12 · red→green
+SEC-45 | A05.Q1 | POST /orders     | open | 2026-09-13 | 2026-09-13 | —
+-->
 ```
 
 The **Limits** section is not optional and is never empty — at minimum it states

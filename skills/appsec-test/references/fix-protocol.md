@@ -186,10 +186,9 @@ never cause 3 — offer to record it in `SECURITY-NOTES.md` at `SCAN_ROOT`, unde
 `## Verified clean`, whose columns are already `| Ref | Checked | Date |`.
 
 That file is hand-maintained today and no skill in this repository writes to it,
-so the offer takes the shape `api-secure-report` Step 5 uses for its
-`.gitignore` prompt — *"say so plainly and offer to add it — one line, at the
-user's call. Do not add it silently, and do not skip the question"*. Show the
-row first:
+so the offer takes the same shape as the ledger annotation in Step 8 of
+`SKILL.md` — say plainly what would be written, offer it once, write only on a
+yes, and never silently. Show the row first:
 
 ```markdown
 | `A01.Q2` | GET /orders/:id — leitura cruzada entre tenants recusada; teste em test/orders.security.spec.ts | 2026-09-12 |

@@ -109,12 +109,16 @@ Then, still in Step 1:
 5. Read these at `SCAN_ROOT` if they exist, and say which you found:
    - **`SECURITY-NOTES.md`** — an accepted risk goes to its own section, not into
      the findings. An open item that this change touches keeps its existing id.
-   - **`SECURITY-REPORT.md`** — a previous route audit. A finding it already
-     records in touched code is `origin: pre-existing`, cited **by its finding
-     number**.
-   - **`STRIDE-REPORT.md`** — a previous threat model. Seeds the decomposition in
-     Step 3 instead of rebuilding it, and tells you which elements are new since.
-   - **`.claude/appsec-profile.md`** — this project's architecture as the developer
+   - **`appsec/security-report.md`** — a previous route audit. A finding it
+     already records in touched code is `origin: pre-existing`, cited **by its
+     durable `SEC-<n>` id**. Say so too when that finding already carries a
+     regression test — the ledger's last column names it, and a pre-existing
+     defect that is pinned by a test is a different conversation from one that is
+     not.
+   - **`appsec/stride-report.md`** — a previous threat model. Seeds the
+     decomposition in Step 3 instead of rebuilding it, and tells you which
+     elements are new since. Threats are cited by their durable `TM-<n>`.
+   - **`appsec/profile.md`** — this project's architecture as the developer
      states it, in claims with an evidence anchor each. Re-grep the anchor of any
      claim you rely on; a claim with no `Does not apply to:` line, or one under
      `## Stale`, applies to nothing. **This is the one artifact both halves may be
@@ -159,7 +163,7 @@ boundary catalogue and the element matrix in
 - the **boundaries those elements sit on or cross**, and whether the change
   *adds*, *moves*, *widens* or *narrows* one.
 
-If `STRIDE-REPORT.md` exists at `SCAN_ROOT`, seed the list from it and mark what
+If `appsec/stride-report.md` exists at `SCAN_ROOT`, seed the list from it and mark what
 is new since it was written — re-deriving a decomposition that already exists
 wastes the run and invites a second, contradictory one.
 
@@ -277,8 +281,8 @@ each other, or share a number.
   `Does not apply to:` line, one under `## Stale`, or one whose anchor did not
   re-grep is **not** a removal: the item stands, and says why.
 - **Cross-check the project files.** An accepted risk from `SECURITY-NOTES.md`
-  moves to its own section. An item that `SECURITY-REPORT.md` or
-  `STRIDE-REPORT.md` already records is marked `pre-existing` and cited **by that
+  moves to its own section. An item that `appsec/security-report.md` or
+  `appsec/stride-report.md` already records is marked `pre-existing` and cited **by that
   document's item number**, never by the taxonomy it uses.
 - **Compute the verdict** from the rule in `references/report-format.md`. It is a
   rule, not a judgment, so two runs over the same change agree.

@@ -9,6 +9,10 @@
   unguarded route is a finding, never an exemption, so nothing gets claimed here
   that would silence one. The whole value of this file for this project is that it
   makes later findings sharper.
+
+  MOVED FOR 3.0.0 — this file now lands at appsec/profile.md instead of
+  .claude/appsec-profile.md. Its claim ids and format are unchanged.
+  Regenerate with the recipe above before tagging 3.0.0.
 -->
 
 # vulnerable-app — appsec architecture profile

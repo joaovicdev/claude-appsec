@@ -27,7 +27,7 @@ lives only in `stacks/`.
    project's known-open findings and accepted risks. If it does not exist and the
    project has findings worth tracking, `templates/SECURITY-NOTES.md` beside this
    file is the blank to copy there.
-4. If `.claude/appsec-profile.md` exists at the project root, read it. It says
+4. If `appsec/profile.md` exists at the project root, read it. It says
    where *this* project puts the things these files ask about — the guard, the
    tenant predicate, the validation pipe, the config loader — so you flag what is
    actually missing instead of what is merely not in front of you, and so new code

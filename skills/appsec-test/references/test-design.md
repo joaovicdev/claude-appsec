@@ -1,8 +1,9 @@
 # Test design
 
 Writing the test is where this skill stops reading and starts producing
-something the repository keeps. A report is overwritten on the next run; this
-file is committed, so a test that cannot fail ships as evidence forever.
+something the repository keeps. A report's prose is regenerated on the next run
+and only its ledger survives; this file is committed and runs in CI, so a test
+that cannot fail ships as evidence forever.
 
 This file names runners, packages and language APIs, which nothing else in the
 repository does. The departure is deliberate, written down in `CONTRIBUTING.md`,
@@ -202,6 +203,18 @@ Four lines, fixed: the ref, the location, the date the run went RED and what
 happened next, and the instruction. When the gate was answered no, line three
 reads `Proven red <date>; unfixed` and names where that was recorded. A security
 test with no header is the one weakened at 2 a.m. to unblock a deploy.
+
+**Line one also carries the item's durable id when it has one** — `SEC-7`, `TM-3`
+— beside the ref: `Security regression — SEC-7 — A01.Q2`. An id issued by a
+report's ledger still names the same defect after the prose around it has been
+regenerated, which a positional number never did. An item resolved from a
+`file:line` or from prose has no id and the segment is simply absent.
+
+**Line three is the single source for the report annotation.** Step 8 of
+`SKILL.md` derives the ledger's `test` column from it — `<test path> · <date> ·
+red` or `· red→green` — rather than re-deciding the outcome. Two records of the
+same run that can disagree will eventually disagree, and the one in the test file
+is the one a reader trusts.
 
 ## Test shapes by category
 
