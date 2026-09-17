@@ -13,7 +13,7 @@
 set -euo pipefail
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SKILLS=(secure-coding api-secure-report app-stride-report pr-appsec-review appsec-test)
+SKILLS=(secure-coding appsec-profile api-secure-report app-stride-report pr-appsec-review appsec-test)
 AGENTS=(security-auditor threat-modeler)
 TRIGGER_LINE='@.claude/skills/secure-coding/TRIGGER.md'
 STAMP='.claude/.secure-coding-version'
@@ -94,27 +94,11 @@ install_project() {
     ok "trigger import appended to CLAUDE.md"
   fi
 
-  # both generated documents describe how to attack this codebase
-  local gi="$root/.gitignore" missing=""
-  for doc in SECURITY-REPORT.md STRIDE-REPORT.md; do
-    if [ -f "$gi" ] && grep -qxF "$doc" "$gi"; then
-      ok ".gitignore already covers $doc"
-    else
-      missing="$missing $doc"   # a string, not an array: bash 3.2 + set -u
-    fi
-  done
-  if [ -n "$missing" ]; then
-    [ -f "$gi" ] && printf '\n' >> "$gi"
-    printf '# quotes internal paths and describes how to exploit them\n' >> "$gi"
-    for doc in $missing; do
-      printf '%s\n' "$doc" >> "$gi"
-      ok "$doc added to .gitignore"
-    done
-  fi
-
+  # every generated artifact now lives in appsec/ and is committed, so this
+  # installer writes no ignore rule at all. CI asserts .gitignore is untouched.
   say ""
   say "${bold}Commit these so your team gets it from a plain git clone:${off}"
-  say "  ${dim}git add .claude CLAUDE.md .gitignore && git commit -m 'chore: secure-coding skill $VERSION'${off}"
+  say "  ${dim}git add .claude CLAUDE.md && git commit -m 'chore: secure-coding skill $VERSION'${off}"
   say ""
   say "Verify with:  ${dim}$REPO/install.sh --check $root${off}"
 }
@@ -144,6 +128,14 @@ check() {
         && ok "        $a agent present" \
         || warn "        $a agent missing — the skill that dispatches it loses enforced read-only"
     done
+    if [ -f "$root/appsec/profile.md" ]; then
+      ok "        architecture profile present ($(grep -m1 -o 'Generated:[^·]*' "$root/appsec/profile.md" 2>/dev/null | sed 's/Generated: *//' || echo 'date unknown'))"
+    else
+      warn "        no architecture profile — the commands will re-derive the architecture every run (/appsec-profile)"
+    fi
+    if [ -d "$root/appsec/history" ]; then
+      ok "        report history: $(find "$root/appsec/history" -name '*.md' | wc -l | tr -d ' ') run(s) archived"
+    fi
   fi
 
   if [ -e "$HOME/.claude/skills/secure-coding/SKILL.md" ]; then

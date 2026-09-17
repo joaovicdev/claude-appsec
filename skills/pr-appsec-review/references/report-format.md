@@ -23,6 +23,7 @@ hunk: @@ -28,6 +28,12 @@                  # required unless origin is pre-existi
 origin: introduced | aggravated | pre-existing
 ref: A01.Q2                               # an id that exists in the secure-coding files
 severity: critical | high | medium | low
+profile: P7 | —                           # a profile claim that explains this, if any
 what: <one or two sentences — the defect, stated plainly>
 exploit: <concrete steps an attacker takes, with the request that does it>
 fix: <what to change, in this project's idiom, pointing at the correct pattern>
@@ -43,6 +44,7 @@ status: unmitigated | partial | mitigated | n/a
 evidence: src/orders/orders.controller.ts:31
 impact: high | medium | low
 likelihood: high | medium | low
+profile: P7 | —                           # a profile claim that explains this, if any
 threat: <what an attacker does, one or two sentences>
 attack: <the concrete path — the request, the sequence, the precondition>
 mitigation: <what closes it, in this project's own idiom>
@@ -64,6 +66,21 @@ a repository, so it is not a guess:
 An item with no `origin` is discarded at consolidation. `pre-existing` is a real
 and useful answer — it is a defect in code someone is already editing — and it is
 never inflated to `introduced` to make it land harder.
+
+### This review's numbers are local, and never durable ids
+
+`appsec/security-report.md` and `appsec/stride-report.md` issue durable ids —
+`SEC-7`, `TM-3` — out of a ledger they own and rewrite. **This skill has no
+ledger and writes no file, so it issues none.** Its `1.`, `2.`, `TM-1` are
+handles for a document on the screen in front of a reviewer, nothing more, and
+they mean nothing on the next run.
+
+Where an item is `pre-existing` *and* one of those reports already records it,
+name that report's durable id in the **Onde no PR** bullet. That is the id the
+reviewer can act on, look up, and hand to `/appsec-test` — and if the ledger's
+last column shows it already carries a regression test, say so, because a
+pre-existing defect that is pinned by a test is a different conversation from one
+that is not.
 
 ### The evidence rule — STRIDE axis only
 
@@ -158,6 +175,13 @@ to say so on the same line.
 A half that did not run never produces **Nada bloqueante** for its own section.
 It produces `✘ não executada`, and the verdict says the review is partial.
 
+Um item removido por uma claim do perfil não é um achado e não entra em nenhuma
+linha do veredito. **Quando houve remoção, a linha do veredito diz quantos itens
+foram removidos e por quais claims.** Sem isso, um **Bloqueia o merge** pode virar
+**Nada bloqueante** por causa de uma linha que alguém escreveu num perfil seis
+meses atrás — um veredito que depende das claims de arquitetura do próprio time
+tem que dizer isso na mesma linha em que se apresenta.
+
 ## 4. Output template
 
 Below is the `pt-BR` rendering, which is the default. For another language,
@@ -222,12 +246,13 @@ do arquivo.
 ### 5. Bootstrap da aplicação — Média — `NEST.1` — pré-existente
 
 - **Componente:** `src/main.ts:14`
-- **Onde no PR:** não alterado por este PR — já presente em `9c8d7e6`
+- **Onde no PR:** não alterado por este PR — já presente em `9c8d7e6`.
+  Registrado como `SEC-12` em `appsec/security-report.md`, sem teste de regressão.
 - **A vulnerabilidade / Como um atacante pode explorar / Mitigação:** …
 
 ## Ameaças STRIDE
 
-### TM-01 — OrdersController — Risco alto — `E.Q3` — introduzida
+### TM-1 — OrdersController — Risco alto — `E.Q3` — introduzida
 
 - **Elemento:** processo `OrdersController` (`src/orders/orders.controller.ts:31`)
 - **Fronteira:** internet → app
@@ -237,7 +262,7 @@ do arquivo.
 - **Mitigação:** <o que fecha, no idioma deste projeto>
 - **Efeito do PR:** introduz — o elemento não existia em `9c8d7e6`
 
-### TM-02 — …
+### TM-2 — …
 
 ## Mudanças em fronteiras de confiança
 
@@ -262,11 +287,16 @@ Toda suposição feita para revisar esta mudança. Uma premissa errada invalida 
 itens que dependem dela — por isso ficam visíveis, e não implícitas.
 
 - <base inferida, ambiente de deploy, o que existe fora do repositório>
+- Perfil `appsec/profile.md` (<YYYY-MM-DD>): claims usadas — <P3, P4, P7>.
+  Uma premissa errada invalida os itens que dependeram dela.
 
 ## Limites desta revisão
 
 - <o que não foi lido, e por quê — binário, arquivo gerado, head não baixado>
 - Arquivos alterados efetivamente lidos: <n> de <n>.
+- Perfil de arquitetura: `appsec/profile.md`, gerado em <YYYY-MM-DD> no
+  commit `<sha>` — <n> achados e <n> ameaças removidos por claims do perfil
+  (<P7, P9>), contados por metade. Sem perfil: "nenhum perfil — nada foi removido".
 - <qual metade não rodou, e por quê — nunca omitir>
 - Ausência de achado não é prova de ausência de vulnerabilidade. As regras OWASP
   são as do skill `secure-coding` e as ameaças são as do `app-stride-report`; um
@@ -278,3 +308,7 @@ itens que dependem dela — por isso ficam visíveis, e não implícitas.
 they state the base that was used, the coverage numbers, which halves ran, and
 the last line. A review that hides what it did not look at is worse than no
 review — a reviewer trusts it and stops looking.
+
+The profile lines carry the **ids**, never the items. An item removed by a claim
+appears nowhere else in this review, so those two lines and the verdict line are
+the only accounting that exists.

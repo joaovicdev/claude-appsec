@@ -8,6 +8,16 @@ in this repository, a NestJS app that is wrong on purpose. Reproduce it with:
 
 Findings and wording will differ run to run — the route inventory and the ids
 should not.
+
+  STALE FOR 3.0.0 — produced by 2.3.0 and NOT yet regenerated. This document is
+  a real run and is kept that way: it is not hand-edited into the new format,
+  because a mock-up dressed as a run is the one thing these files must never be.
+  What 3.0.0 changed and this file therefore predates: it lands at
+  appsec/security-report.md instead of the project root, items carry durable ids
+  (SEC-7) instead of positional numbers, each one states [new] /
+  [open since <date>] / [reopened <date>], there is a '## Desde a execução
+  anterior' section, and an appsec-ledger comment closes the file.
+  Regenerate with the recipe above before tagging 3.0.0.
 -->
 
 # API security report — vulnerable-app

@@ -20,8 +20,9 @@ This skill is a **consumer** of both. It restates neither — it reads their fil
 and cites their stable ids. If a rule seems missing, the fix is to add a question
 there, not to invent one here.
 
-**Nothing is written. Not even the review.** The other three commands leave a
-file behind — the two reports, and the test `/appsec-test` commits; this one has
+**Nothing is written. Not even the review.** The other four commands leave a
+file behind — the two reports, the architecture profile, and the test
+`/appsec-test` commits; this one has
 no `Write` at all, and prints to the terminal. A review that leaves a file
 behind in someone's branch is a review that shows up in their next `git status`.
 
@@ -108,11 +109,23 @@ Then, still in Step 1:
 5. Read these at `SCAN_ROOT` if they exist, and say which you found:
    - **`SECURITY-NOTES.md`** — an accepted risk goes to its own section, not into
      the findings. An open item that this change touches keeps its existing id.
-   - **`SECURITY-REPORT.md`** — a previous route audit. A finding it already
-     records in touched code is `origin: pre-existing`, cited **by its finding
-     number**.
-   - **`STRIDE-REPORT.md`** — a previous threat model. Seeds the decomposition in
-     Step 3 instead of rebuilding it, and tells you which elements are new since.
+   - **`appsec/security-report.md`** — a previous route audit. A finding it
+     already records in touched code is `origin: pre-existing`, cited **by its
+     durable `SEC-<n>` id**. Say so too when that finding already carries a
+     regression test — the ledger's last column names it, and a pre-existing
+     defect that is pinned by a test is a different conversation from one that is
+     not.
+   - **`appsec/stride-report.md`** — a previous threat model. Seeds the
+     decomposition in Step 3 instead of rebuilding it, and tells you which
+     elements are new since. Threats are cited by their durable `TM-<n>`.
+   - **`appsec/profile.md`** — this project's architecture as the developer
+     states it, in claims with an evidence anchor each. Re-grep the anchor of any
+     claim you rely on; a claim with no `Does not apply to:` line, or one under
+     `## Stale`, applies to nothing. **This is the one artifact both halves may be
+     given**, precisely because it carries neither vocabulary — the single
+     exception to the rule below about never handing an agent the other half's
+     material. No profile means the review runs as it did before the file existed:
+     say so once, name `/appsec-profile`, and continue.
 
 ## Step 2 — Resolve the change and get the diff
 
@@ -150,7 +163,7 @@ boundary catalogue and the element matrix in
 - the **boundaries those elements sit on or cross**, and whether the change
   *adds*, *moves*, *widens* or *narrows* one.
 
-If `STRIDE-REPORT.md` exists at `SCAN_ROOT`, seed the list from it and mark what
+If `appsec/stride-report.md` exists at `SCAN_ROOT`, seed the list from it and mark what
 is new since it was written — re-deriving a decomposition that already exists
 wastes the run and invites a second, contradictory one.
 
@@ -210,6 +223,15 @@ Every prompt on either axis states, explicitly:
   tables above are relative to a root: interpolate the absolute path rather than
   pasting the relative one. **Never give an agent the other half's root**, and
   never name the other half's ids in its prompt.
+- **The profile sections its slice needs — never the whole file.** OWASP axis:
+  `## Authorization`, `## Tenancy and data scoping`, `## Input validation`,
+  `## Public by design`, `## Not claimed`, plus `## Configuration and secrets` for
+  a config or dependency slice. STRIDE axis: `## Trust boundaries`,
+  `## Module map`, and the claim sections the matrix makes relevant. The profile is
+  the one thing both halves may receive. **An agent never stays silent**: it emits
+  the block with `profile: P<n>` naming the claim it relied on, and consolidation
+  decides — an agent suppressing on its own would make the count the review owes
+  **Limites** impossible to produce.
 - `MERGE_BASE` and `HEAD_REF`, so the agent can run
   `git diff --merge-base <base> <head> -- <its files>` itself.
 - **Its slice**: the files it owns with their hunk ranges, or the boundary and
@@ -253,9 +275,14 @@ each other, or share a number.
 - **Number.** Findings `1`, `2`, … ordered by origin (`introduced` first), then
   severity, then file. Threats `TM-01`, `TM-02`, … ordered by risk, then
   boundary. Never `T-01` — `T` is Tampering.
+- **Remove, and count — per half, counted separately**, since the halves never
+  share a number. An item tagged `profile: P<n>` against a well-formed claim does
+  not enter the review in any form. A tag against a claim with no
+  `Does not apply to:` line, one under `## Stale`, or one whose anchor did not
+  re-grep is **not** a removal: the item stands, and says why.
 - **Cross-check the project files.** An accepted risk from `SECURITY-NOTES.md`
-  moves to its own section. An item that `SECURITY-REPORT.md` or
-  `STRIDE-REPORT.md` already records is marked `pre-existing` and cited **by that
+  moves to its own section. An item that `appsec/security-report.md` or
+  `appsec/stride-report.md` already records is marked `pre-existing` and cited **by that
   document's item number**, never by the taxonomy it uses.
 - **Compute the verdict** from the rule in `references/report-format.md`. It is a
   rule, not a judgment, so two runs over the same change agree.

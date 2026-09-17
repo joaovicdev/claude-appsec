@@ -15,8 +15,9 @@ security material — it reads that skill's files and cites their stable ids
 (`A01.Q2`, `NEST.3`). If a rule seems missing, the fix is to add a review
 question there, not to invent one here.
 
-Nothing in this skill modifies the project under review. It has no `Edit`, and
-the only file it writes is the report itself.
+Nothing in this skill modifies the project under review. It has no `Edit`. It
+writes inside `appsec/` and nowhere else: the report, and the snapshot of the
+previous report it moves into `appsec/history/` before writing.
 
 ## Arguments
 
@@ -27,9 +28,9 @@ the only file it writes is the report itself.
 | `language` | `pt-BR` | Output language: `pt-BR`, `en`, `es`, … Anything that is not a recognized language tag is treated as `path`. |
 | `path` | repository root | Restrict the scan to a subdirectory. Stated in the report header when set. |
 
-## Step 1 — Resolve the two roots, then load the rules
+## Step 1 — Resolve the roots, then load the rules
 
-Everything downstream is addressed by absolute path, so establish both roots
+Everything downstream is addressed by absolute path, so establish every root
 before anything else and reuse them verbatim.
 
 1. **`RULES_ROOT`** — the `secure-coding` skill directory. It is the sibling of
@@ -57,6 +58,39 @@ before anything else and reuse them verbatim.
    under **Accepted risks** is reported in its own section as accepted, not as a
    new finding. Anything under **Open** that is still present is reported with
    its existing id.
+
+6. **`PROFILE`** — `SCAN_ROOT/appsec/profile.md`. If it exists, read it:
+   it is this project's own architecture as the developer states it, in claims
+   with an evidence anchor each. It says where the guard is, how a query is
+   scoped, what is public by declaration — so the scan reports what is actually
+   missing instead of what is merely not in front of the agent that looked.
+
+   Three rules, and they are what keep a generated file from silencing real
+   findings:
+
+   - **Re-grep the anchor of every claim you are about to rely on.** A claim whose
+     symbol is no longer at that line does not apply on this run; count it and say
+     so under **Limites**.
+   - **A claim with no `Does not apply to:` line applies to nothing**, and neither
+     does one sitting under `## Stale`. Those are documentation: read them, spend
+     no context re-deriving them, and still report what you find.
+   - If there is no profile, say so **once** and name `/appsec-profile` — offered,
+     never written silently. The scan then runs exactly as it did before the file
+     existed.
+
+7. **`REPORT`** — `SCAN_ROOT/appsec/security-report.md`, and **`LEDGER`** — the
+   `appsec-ledger` comment on its last lines. If the report exists, read the
+   ledger now and keep it: it carries every id this project has ever issued, what
+   each one was, whether it was open or fixed, and which ones a regression test
+   already pins down. Step 4 reconciles against it and Step 5 rewrites it.
+
+   No report yet means no ledger: every finding this run is `[new]`, ids start at
+   `SEC-1`, and the report says there was nothing to compare against. A report
+   whose ledger comment is missing or unparseable is **not** a fresh start — fall
+   back to `max(id present in the document)`, carry on from there, and say so in
+   the terminal summary. Silently restarting at `SEC-1` would hand an old id to a
+   new defect, and a committed test citing that id would then point at the wrong
+   thing.
 
 ## Step 2 — Enumerate the routes
 
@@ -119,6 +153,23 @@ Every subagent prompt must state, explicitly:
 - The slice this agent owns, and that everything outside it belongs to another
   agent.
 - The output contract from `references/report-format.md`, in **English**.
+- **The profile sections this agent's slice needs — never the whole file.** The
+  headings are fixed English precisely so this is a mechanical lift:
+
+  | Agent | Sections pasted |
+  |---|---|
+  | per-module | `## Authorization`, `## Tenancy and data scoping`, `## Input validation`, `## Public by design`, `## Not claimed` |
+  | config | `## Configuration and secrets`, `## Module map` |
+  | deps | none — the profile says nothing about lockfiles |
+  | auth | `## Authentication`, `## Public by design` |
+  | design | `## External systems`, `## Trust boundaries` |
+
+  Say in the prompt that a claim is the developer's word and is not to be
+  re-derived — that is where the token saving comes from. And state the tagging
+  rule: **an agent never stays silent.** It emits the block it would have emitted
+  with one extra field, `profile: P<n>`, naming the claim it relied on, and
+  consolidation decides. An agent that suppressed on its own would make the count
+  this report owes **Limites** impossible to produce.
 
 The agent's own definition already carries the rest — grep-signals-first, answer
 the review questions, no finding without a `file:line` it read. Restating those
@@ -133,21 +184,52 @@ in the prompt is harmless, but they are enforced whether you do or not.
   not exist in the `secure-coding` files. A fabricated id breaks the contract
   that makes findings resolvable.
 - **Order** the inventory by module, then by path. Order findings by severity,
-  then by module. Number them so the report can be discussed by number.
+  then by module.
+- **Reconcile against `LEDGER`** and assign ids, following section 3 of
+  `references/report-format.md`: match by `(METHOD + route, ref)` for a route
+  finding and by `(file path, ref)` for a global one; carry the id of every
+  match; a ledger row nothing matched is `fixed`; a match that was `fixed` is
+  `reopened` and keeps its id; anything left is a new id at the next number.
+  **Ids are never renumbered and never reused** — the finding's position in this
+  document says nothing about its identity, which is the whole point.
 - **Cross-check** against `SECURITY-NOTES.md`: an accepted risk moves to its own
   section, an already-open finding keeps its existing id.
+- **Remove, and count.** A finding tagged `profile: P<n>` against a well-formed
+  claim does not enter the report — not as a finding, not as a note on the route,
+  not in the severity tables. It is counted, and that count plus the claim ids is
+  the line this run owes **Limites**. A tag against a claim with no
+  `Does not apply to:` line, a claim under `## Stale`, or a claim whose anchor did
+  not re-grep is **not** a removal: the finding stands, and `what` says why.
 
 ## Step 5 — Emit
 
-Print the report to the terminal **and** write it to `SECURITY-REPORT.md` at
-`SCAN_ROOT` — not in this skill's own repository. If that file already exists,
-say so and that it is being overwritten.
+Everything this skill writes lives under `SCAN_ROOT/appsec/` — never in this
+skill's own repository. Create the directory if it is absent.
 
-**The report quotes internal paths and spells out how to exploit them.** Before
-finishing, check whether `SECURITY-REPORT.md` is covered by the project's
-`.gitignore`. If it is not, say so plainly and offer to add it — one line, at the
-user's call. Do not add it silently, and do not skip the question: committing
-this file publishes an attack plan to everyone with repository access.
+1. **Archive the previous run, do not overwrite it.** If `REPORT` exists, read
+   its `**Data:**` and `**Commit:**` header and move it to
+   `appsec/history/security-<that date>-<that sha>.md`. Same date and same sha as
+   a file already there → append `-2`, `-3`. A report with no `**Commit:**`
+   header predates this layout: name it `security-<that date>-nogit.md`.
+2. **Write the new report** to `appsec/security-report.md`, ledger comment last.
+3. **Print it to the terminal** as well.
+
+The invariant is worth stating because it is what makes the directory readable:
+`appsec/security-report.md` is the current run and `appsec/history/` is every run
+before it. A run never copies itself into the history — it moves its predecessor
+there, so no two files ever hold the same content.
+
+Capture the sha for this run's header with
+`git -C "$SCAN_ROOT" rev-parse --short HEAD`; a dirty worktree gets `<sha>-dirty`
+and a directory that is not a git repository gets `nogit`. Without that field the
+next run has nothing to name the snapshot with.
+
+**This report quotes internal paths and spells out how to exploit them, and it
+is committed.** That is deliberate: a history nobody shares is a history nobody
+compares, and the diff between two runs is the thing this document exists to
+produce. Say so once, plainly, on a first run — a repository that is public, or
+one whose read access is wider than the team, should decide that knowingly rather
+than discover it later. Never add an ignore rule on the user's behalf.
 
 Use the template in `references/report-format.md`. Translate the prose and the
 labels into the requested language. Never translate: ids (`A01.Q2`, `NEST.3`),

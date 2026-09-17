@@ -44,7 +44,11 @@ jobs:
           test -d /tmp/target/.claude/skills/app-stride-report
           test -d /tmp/target/.claude/skills/pr-appsec-review
           test -d /tmp/target/.claude/skills/appsec-test
-          grep -qxF STRIDE-REPORT.md /tmp/target/.gitignore
-          # the PR review writes no document, and /appsec-test writes a test that
-          # is committed rather than ignored — so neither adds an ignore line
-          test "$(wc -l < /tmp/target/.gitignore)" -le 4
+          test -d /tmp/target/.claude/skills/appsec-profile
+          # the installer never generates a profile — /appsec-profile does, on demand
+          test ! -f /tmp/target/appsec/profile.md
+          # nor any report, history, or the appsec/ directory itself
+          test ! -d /tmp/target/appsec
+          # every generated artifact is committed now, so the installer writes no
+          # ignore rule at all: a .gitignore it created is the regression
+          test ! -f /tmp/target/.gitignore

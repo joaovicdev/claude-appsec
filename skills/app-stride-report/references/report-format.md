@@ -18,6 +18,7 @@ status: unmitigated | partial | mitigated | n/a
 evidence: src/orders/orders.controller.ts:31
 impact: high | medium | low
 likelihood: high | medium | low
+profile: P7 | —                  # a profile claim that explains this, if any
 threat: <what an attacker does, one or two sentences>
 attack: <the concrete path — the request, the sequence, the precondition>
 mitigation: <what closes it, in this project's own idiom>
@@ -81,7 +82,84 @@ together is how everything becomes "medium".
 A `status: mitigated` threat keeps its impact and likelihood — they describe the
 threat, not the residual. It is listed in the matrix, not in the threat list.
 
-## 3. Document template
+## 3. Identity, status and the ledger
+
+A model is regenerated whole on every run: **the prose is replaced, the identity
+is not.** `appsec-profile` merges because a human edits it; this document does
+not merge, because nothing in it is hand-written. What crosses runs is the id,
+the date the threat was first seen, its status history, and its regression test.
+
+### The id
+
+`TM-<n>`, issued once and **never renumbered, never reused**. Still never
+`T-<n>` — `T` is Tampering. No zero padding: `TM-3`, `TM-142`, like `P7` in the
+profile. `TM-01` only ever made sense while the number carried the ordering, and
+ordering is by risk, which changes every run.
+
+The **natural key** is `(element name, ref)`.
+
+That key only works if element names hold still, so the rule the decomposition
+already applies to boundaries applies to every element: **an element a previous
+model already names keeps that name, verbatim.** Two runs that decompose the same
+system correctly but call `OrdersController` by two names produce two threats
+where there is one.
+
+### Reconciling a run against the ledger
+
+In this order, and never by prose similarity:
+
+1. Match by `(element, ref)`.
+2. Exactly one unmatched threat on each side sharing a key → the same threat; the
+   id carries over.
+3. Several sharing a key → pair them by the element's `file:line`, nearest wins.
+   Leftovers are new.
+4. A ledger row nothing matched this run → `fixed`, dated today.
+5. A match whose ledger status was `fixed` → `reopened`, **the same id**.
+6. Anything still unmatched → a new id at the next number.
+
+### Status tokens
+
+Four tokens, **fixed English, never translated**, appended to the threat heading
+— literal strings, because a consumer greps them:
+
+```
+[new]                    first run this threat appeared in
+[open since <date>]      carried over unchanged
+[reopened <date>]        matched again after having been fixed
+[fixed <date>]           matched nothing this run
+```
+
+A `[fixed …]` threat appears **only** in `## Desde a execução anterior`, for
+exactly one run, and then leaves the document. Its ledger row stays, so a reopen
+gets its id back.
+
+### The ledger
+
+An HTML comment on the last lines of the document — self-contained, exactly like
+the profile's ledger. Every column is an id, a ref, a name or a date, so the
+block is identical whatever language the prose was written in.
+
+```
+<!-- appsec-ledger · schema 1 · stride · ids issued: TM-1..TM-41 · from 324304f on 2026-09-13
+TM-3  | E.Q3 | OrdersController | open  | 2026-08-15 | 2026-09-13 | test/orders.security.spec.ts · 2026-09-12 · red→green
+TM-9  | I.Q1 | users store      | open  | 2026-08-15 | 2026-09-13 | —
+TM-15 | R.Q1 | log sink         | fixed | 2026-08-15 | 2026-09-10 | —
+-->
+```
+
+`id | ref | key | status | first seen | last seen | test`
+
+If the comment is gone, fall back to `max(id present)` and **say so in the
+terminal summary** — from that point a number can be reused, and a test pointing
+at `TM-15` would resolve to the wrong threat.
+
+### The `test` column has one writer, and it is not this skill
+
+`/appsec-test` fills it, and fills nothing else: never an id, never `status`,
+never the order. A green test is evidence, not proof the threat is closed —
+whether it is still open is decided here, by re-reading the code.
+
+## 4. Document template
 
 Below is the `pt-BR` rendering, which is the default. For another language,
 translate labels and prose and keep the structure, the ids, the paths and the
@@ -92,9 +170,10 @@ code exactly as they are.
 
 **Stack:** <detectada, ou "nenhuma detectada">
 **Escopo:** <raiz do repositório, ou o caminho passado>
-**Data:** <YYYY-MM-DD>
+**Data:** <YYYY-MM-DD> · **Commit:** `<sha>`
 **Elementos:** <n> atores · <n> processos · <n> stores · <n> fluxos · <n> fronteiras
 **Ameaças:** <n> abertas · <n> parciais · <n> mitigadas
+**Com teste de regressão:** <n> de <n> ameaças
 
 ## Resumo
 
@@ -108,6 +187,17 @@ code exactly as they are.
 |---|---|
 | S — Spoofing | 1 |
 | E — Elevation of Privilege | 4 |
+
+## Desde a execução anterior
+
+Anterior: <YYYY-MM-DD>, commit `<sha>` — `appsec/history/stride-<YYYY-MM-DD>-<sha>.md`.
+
+| | Qtd | Ids |
+|---|---|---|
+| Novas | 2 | TM-40, TM-41 |
+| Reabertas | 1 | TM-15 |
+| Corrigidas | 3 | TM-6, TM-11, TM-27 |
+| Inalteradas | 19 | — |
 
 ## Diagrama de fluxo de dados
 
@@ -162,7 +252,7 @@ latente · ✘ ameaça aberta · — a categoria não se aplica a este tipo de e
 
 ## Ameaças
 
-### TM-01 — OrdersController — Risco alto — `E.Q3`
+### TM-3 — OrdersController — Risco alto — `E.Q3` [open since 2026-08-15] [tested 2026-09-12]
 
 - **Elemento:** processo `OrdersController` (`src/orders/orders.controller.ts:31`)
 - **Fronteira:** internet → app
@@ -170,9 +260,11 @@ latente · ✘ ameaça aberta · — a categoria não se aplica a este tipo de e
 - **Caminho de ataque:** <passos concretos, com a requisição>
 - **Estado atual:** aberto — <o que foi encontrado, ou onde se procurou e não achou>
 - **Mitigação:** <o que fecha, no idioma deste projeto>
-- **Confirmado em código:** achado #7 de `SECURITY-REPORT.md`
+- **Confirmado em código:** achado SEC-7 de `appsec/security-report.md`
+- **Teste de regressão:** `test/orders.security.spec.ts` — provado vermelho em
+  2026-09-12, corrigido na mesma mudança
 
-### TM-02 — …
+### TM-41 — AttachmentsController — Risco médio — `I.Q3` [new]
 
 ## Riscos já aceitos
 
@@ -188,22 +280,42 @@ Toda suposição feita na decomposição. Uma premissa errada invalida as ameaç
 que dependem dela — por isso elas ficam visíveis, e não implícitas.
 
 - <o que se assumiu sobre o deploy, a rede, quem opera, o que existe fora do repo>
+- Perfil `appsec/profile.md` (<YYYY-MM-DD>): claims usadas — <P3, P4, P7>.
+  Uma claim errada invalida o que dependeu dela.
 
 ## Limites deste modelo
 
 - <o que não foi decomposto, e por quê>
 - <serviços fora deste repositório, gateway upstream, infraestrutura externa>
 - Elementos efetivamente lidos: <n> de <n>.
+- Perfil de arquitetura: `appsec/profile.md`, gerado em <YYYY-MM-DD> no
+  commit `<sha>` — <n> ameaças removidas por claims do perfil (<P7, P9>), <n>
+  claims ignoradas por âncora ausente. Sem perfil: "nenhum perfil — nada foi
+  removido".
 - Ausência de ameaça não é prova de ausência de risco. Uma ameaça citando `E.Q3`
   é resolvível contra `stride/E-elevation-of-privilege.md`.
+
+<!-- appsec-ledger · schema 1 · stride · ids issued: TM-1..TM-41 · from <sha> on <YYYY-MM-DD>
+TM-3  | E.Q3 | OrdersController        | open | 2026-08-15 | 2026-09-13 | test/orders.security.spec.ts · 2026-09-12 · red→green
+TM-41 | I.Q3 | AttachmentsController   | open | 2026-09-13 | 2026-09-13 | —
+-->
 ````
 
 The **Premissas** and **Limites** sections are not optional and are never empty.
 A threat model that hides what it assumed is a threat model nobody can correct.
 
+The profile lines carry the **ids**, never the items. A threat removed by a claim
+appears nowhere else in this document, so those two lines are the only accounting
+that exists. `Premissas` is where a relied-on claim belongs, because that section
+already says what a wrong premise does to everything resting on it.
+
 ### The one line that is never translated
 
-`Confirmado em código` appears only when `SECURITY-REPORT.md` exists at the scan
-root and one of its findings lands on the same element. Reference it **by the
-finding's number**, never by the taxonomy that report uses — the two documents
-share a project, not a vocabulary.
+`Confirmado em código` appears only when `appsec/security-report.md` exists at
+the scan root and one of its findings lands on the same element. Reference it
+**by that finding's durable id** — `SEC-7` — never by the taxonomy that report
+uses. The two documents share a project, not a vocabulary.
+
+The id is durable on both sides now, so the citation survives a regeneration of
+either document. It used to be a finding *number*, which was re-derived on every
+run: a model written on Monday cited findings that had moved by Tuesday.

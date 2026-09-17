@@ -1,4 +1,4 @@
-<!-- secure-coding trigger v2.2.0 — github.com/joaovicdev/claude-appsec -->
+<!-- secure-coding trigger v3.0.0 — github.com/joaovicdev/claude-appsec -->
 
 ## Security baseline
 
@@ -26,7 +26,9 @@ auth or session flow, query, app bootstrap/config, or dependency manifest: load
 the **`secure-coding`** skill and read the manifest rows matching the change.
 Detect the stack — `nest-cli.json` → NestJS, `artisan`/`composer.json` → Laravel,
 `pom.xml`/`build.gradle` → Spring Boot; no match means the language-agnostic core
-still applies. If `SECURITY-NOTES.md` exists at the project root, read it too.
+still applies. If `SECURITY-NOTES.md` exists at the project root, read it too, and
+`appsec/profile.md` if it is there — it says where this project keeps the
+guard, the tenant predicate and the validation it configures globally.
 
 Flag a violation even when the user did not ask about security, and even when the
 surrounding code already violates it — say so once, concisely, and follow the

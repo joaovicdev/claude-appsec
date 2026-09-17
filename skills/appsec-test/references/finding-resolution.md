@@ -8,7 +8,7 @@ goes red, and it goes red convincingly.
 The step produces exactly this, and the rest of the skill runs on nothing else:
 
 ```
-<taxonomy> | <ref> | <file:line, or — for an absence> | <the claim, one sentence>
+<taxonomy> | <id, or — when the item came from no report> | <ref> | <file:line, or — for an absence> | <the claim, one sentence>
 ```
 
 That line is **the resolved item**. It is echoed back before anything is
@@ -23,11 +23,11 @@ privileged, and none requires a report to exist.
 
 | Input | Resolution |
 |---|---|
-| *(nothing)* | Read `SECURITY-REPORT.md` and `STRIDE-REPORT.md` at `SCAN_ROOT`, run the triage in section 6 over both, and print only the provable items, ranked by severity or risk, for a pick. |
-| `3` / `#3` | Finding 3 of `SECURITY-REPORT.md`, resolved the moment it arrives — section 2. |
-| `TM-07` | Threat `TM-07` of `STRIDE-REPORT.md`. |
+| *(nothing)* | Read `appsec/security-report.md` and `appsec/stride-report.md` at `SCAN_ROOT`, run the triage in section 6 over both, and print only the provable items, ranked by severity or risk, for a pick. |
+| `SEC-7` | Finding `SEC-7` of `appsec/security-report.md` — a durable id, section 2. |
+| `TM-3` | Threat `TM-3` of `appsec/stride-report.md`. |
 | `A01.Q2` / `NEST.3` / `E.Q3` | Every item in either report citing that ref. One match resolves; more than one is offered for a pick. |
-| `A01.Q2#3` | Finding 3, **validated** against the ref. A disagreement stops the run — section 2. |
+| `A01.Q2#SEC-7` | `SEC-7`, **validated** against the ref. A disagreement stops the run — section 2. |
 | `src/orders/orders.controller.ts:14` | Locate by position: open the file, read the handler, state the claim. No report needed. |
 | free text | The claim in prose — *"GET /orders/:id returns another tenant's order"*. Ref and taxonomy are derived in section 5. No report needed. |
 
@@ -35,24 +35,30 @@ A form that resolves to nothing is said out loud, with the form quoted back. A
 silent fall back to "the first finding in the report" is how the wrong defect
 ends up with a committed test carrying someone else's line number.
 
-## 2. `#N` is a handle, never an identity
+## 2. `SEC-7` is an identity, and that is new
 
-`api-secure-report` re-derives its numbering on every run — *"Order findings by
-severity, then by module. Number them so the report can be discussed by
-number."* — so finding 3 today and finding 3 tomorrow are different defects. The
-number is how a developer points at a line in a document open in front of them.
-It is not the item.
+Both reports used to number their items by position — ordered by severity or by
+risk, renumbered on every run — so finding 3 today and finding 3 tomorrow were
+different defects. They now issue durable ids out of a ledger: `SEC-7` is the
+same finding next week, after a fix, after a reopen, and after the prose around
+it has been rewritten from scratch.
 
-Resolve it the moment it arrives. Read the finding, take its ref, its
-`file:line` and its claim, echo the resolved item back, and do not use the
-number again — not in the test header, not in the fix, not in the terminal
-output past that echo.
+**So the id goes into the test header block and stays there.** A test carrying
+`SEC-7` still names the right defect on the next run, which is exactly what a
+committed test needs and what a positional number could never give it.
 
-On `A01.Q2#3`, check the halves against each other. If finding 3 does not cite
-`A01.Q2`, **stop.** The report was regenerated after the developer read it, and
-finding 3 is now some other defect. Name the ref finding 3 actually carries and
-ask which item was meant. The ref half of that form exists for no other reason
-than to catch this, and catching it is worth more than the run it costs.
+Resolve it the moment it arrives all the same: read the item, take its id, its
+ref, its `file:line` and its claim, and echo the resolved line back. An id that
+resolves to nothing is said out loud, with the form quoted — **do not** fall
+back to position. `SEC-7` is not "the seventh finding"; a document whose ledger
+issued `SEC-1..SEC-47` may well have no seventh heading at all, because fixed
+items leave the body.
+
+On `A01.Q2#SEC-7`, check the halves against each other. If `SEC-7` does not cite
+`A01.Q2`, **stop**, name the ref it actually carries, and ask which item was
+meant. Durable ids make the old failure — the report was regenerated under the
+developer's feet — much rarer, but a developer reading one project's report and
+typing an id from another's is not rarer at all.
 
 A resolved item nobody confirmed is a test committed against a defect nobody
 reported.
@@ -66,9 +72,9 @@ the developer is writing the code — a flag shaped
 `A01.Q2 — orders.controller.ts:14 — order looked up by id alone`, pasted
 straight out of the conversation it appeared in.
 
-Both must work. Requiring `SECURITY-REPORT.md` would couple this skill to one of
-its three producers, and to the one whose output is gitignored and overwritten
-on every run.
+Both must work. Requiring `appsec/security-report.md` would couple this skill to
+one of its three producers — and the two that write a file are not always the
+one the developer just used.
 
 So a report is an input, never a precondition. A `file:line` form and a prose
 form skip section 4 entirely and join at section 5: read the code at the
@@ -82,14 +88,23 @@ Three heading grammars. The ids and the paths in them are invariant whatever
 language the document was written in:
 
 ```
-### <n>. <METHOD> <ROUTE> — <Severity> — `<ref>` [(also `<ref>`, …)]
-### <n>. <Component> — <Severity> — `<ref>`
-### TM-<nn> — <Element> — <Risk> — `<ref>`
+### SEC-<n> — <METHOD> <ROUTE> — <Severity> — `<ref>` [(also `<ref>`, …)] [<status>]
+### SEC-<n> — <Component> — <Severity> — `<ref>` [<status>]
+### TM-<n> — <Element> — <Risk> — `<ref>` [<status>]
 ```
 
-The first two are `SECURITY-REPORT.md`, a route finding and a global finding.
-The third is `STRIDE-REPORT.md`. `pr-appsec-review` emits all three, in the
-terminal rather than to a file.
+The first two are `appsec/security-report.md`, a route finding and a global
+finding. The third is `appsec/stride-report.md`.
+
+The trailing `[<status>]` groups are **fixed English and never translated** —
+`[new]`, `[open since <date>]`, `[reopened <date>]`, and `[tested <date>]` when a
+regression test already pins the item down. Read them: offering to write a second
+test for something already carrying `[tested …]` wastes the developer's run, so
+say what exists and ask before proceeding.
+
+`pr-appsec-review` emits the same three shapes in the terminal, but **its numbers
+are local to that printed review and are not ids** — it owns no ledger. An id
+typed from a PR review resolves against nothing; ask for the report id instead.
 
 Beneath each heading the bullets carry **translated labels in a fixed order**.
 Match on position, never on the label: *A vulnerabilidade* is *The
@@ -126,7 +141,7 @@ The taxonomy is decided first. Only its section below is then read.
 
 The taxonomy is OWASP when the input is a finding number, a ref shaped
 `A<nn>.Q<n>`, a stack ref (`NEST.3`, `LAR.2`, `SPR.5`), or a heading out of
-`SECURITY-REPORT.md`.
+`appsec/security-report.md`.
 
 The ref is read off the item, never re-derived. For a `file:line` or a prose
 input carrying none, open the one category file under `RULES_ROOT/owasp/` whose
@@ -143,7 +158,7 @@ here is a header line that nothing downstream can resolve.
 ### STRIDE — the resolved item is a threat
 
 The taxonomy is STRIDE when the input is a `TM-<nn>`, a ref shaped
-`<letter>.Q<n>`, or a heading out of `STRIDE-REPORT.md`.
+`<letter>.Q<n>`, or a heading out of `appsec/stride-report.md`.
 
 A threat carries no `file:line` requirement. That is `app-stride-report`'s
 evidence rule and not an oversight, so the location half of the resolved item is
